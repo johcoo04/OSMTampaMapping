@@ -1,1 +1,3 @@
-# OSMTampaMapping
+## Welcome
+
+This project is inspired from Hurricane Milton, when we saw on the news how the interstate was just a parking lot because of all the congestion we knew there had to be a better way for people to evacuate safely and effectively out of the Tampa area. Our premise is to design a Maximum Flow network to get as many people out of the tampa area as possible given a hurricane path, we have set up several nodes from the zipcodes within Tampa and used the current evacuation route roads as our edges. 

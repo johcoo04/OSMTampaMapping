@@ -1,47 +1,17 @@
 import geopandas as gpd
 
-def load_zip_geojson(geojson_path):
-    """
-    Load ZIP code GeoJSON data.
+def load_geojson(file_path):
+    return gpd.read_file(file_path)
 
-    Args:
-        geojson_path (str): Path to the ZIP code GeoJSON file.
-
-    Returns:
-        gpd.GeoDataFrame: GeoDataFrame of ZIP code data.
-    """
-    # Load GeoJSON data into a GeoDataFrame
-    gdf = gpd.read_file(geojson_path)
-    
-    # Convert 'Zip_Code' column to string and rename it to 'ZipCode'
-    gdf['ZipCode'] = gdf['Zip_Code'].astype(str)
-    
+def load_zip_geojson(file_path, zip_column="Zip_Code"):
+    gdf = load_geojson(file_path)
+    gdf['ZipCode'] = gdf[zip_column].astype(str)  # Standardize ZIP code column
     return gdf
 
-def load_routes_geojson(geojson_path):
-    """
-    Load evacuation routes GeoJSON data.
+def load_routes_geojson(file_path):
+    return load_geojson(file_path)
 
-    Args:
-        geojson_path (str): Path to the evacuation routes GeoJSON file.
-
-    Returns:
-        gpd.GeoDataFrame: GeoDataFrame of evacuation routes data.
-    """
-    # Load evacuation routes GeoJSON
-    return gpd.read_file(geojson_path)
-
-def merge_geojson_with_population(zip_gdf, population_df):
-    """
-    Merge ZIP code GeoJSON data with population data.
-
-    Args:
-        zip_gdf (gpd.GeoDataFrame): GeoDataFrame of ZIP code data.
-        population_df (pd.DataFrame): DataFrame of population data.
-
-    Returns:
-        gpd.GeoDataFrame: Merged GeoDataFrame.
-    """
-    # Merge population data into the ZIP GeoDataFrame on 'ZipCode'
-    merged_gdf = zip_gdf.merge(population_df, on='ZipCode', how='left')
-    return merged_gdf
+def load_shelters_geojson(file_path, shelter_id_column="ID"):
+    gdf = load_geojson(file_path)
+    gdf['ShelterID'] = gdf[shelter_id_column]  # Rename and standardize shelter ID column
+    return gdf
