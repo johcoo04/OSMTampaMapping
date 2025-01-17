@@ -121,3 +121,8 @@ cython_debug/
 
 # VS Code
 .vscode/
+
+# Ignore compiled Python files
+global_env/
+__pycache__/
+*.pyc
