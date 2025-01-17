@@ -1,11 +1,10 @@
-from process_geojson import load_zip_geojson, load_routes_geojson, generate_zip_code_nodes
+from process_geojson import load_zip_geojson, load_routes_geojson
 from process_graph import combine_data_to_graph
 from visualize import visualize_combined_graph
 
 # File paths
 zip_geojson_path = "data/Zip_Codes_Tampa.geojson"
 routes_geojson_path = "data/Evacuation_Routes_Tampa.geojson"
-
 
 # Load data
 zip_codes_gdf = load_zip_geojson(zip_geojson_path, zip_column="Zip_Code")
