@@ -1,13 +1,10 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 
-def visualize_combined_graph(graph):
-    """
-    Visualize the combined graph with ZIP code nodes and routes.
 
-    Args:
-        graph (nx.Graph): Combined graph of ZIP code and route nodes.
-    """
+# Visualize the combined graph with ZIP code nodes and routes.
+def visualize_combined_graph(graph):
+ 
     pos = nx.get_node_attributes(graph, 'pos')
 
     # Separate ZIP code nodes and route nodes
