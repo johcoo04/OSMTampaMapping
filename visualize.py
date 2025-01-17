@@ -26,4 +26,6 @@ def plot_population_and_routes(zip_gdf, routes_gdf, output_file=None):
     
     if output_file:
         plt.savefig(output_file, dpi=300)
-    plt.show()
+    plt.savefig('output.png')
+    
+    #plt.show()
