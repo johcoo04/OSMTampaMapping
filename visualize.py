@@ -1,27 +1,29 @@
 import matplotlib.pyplot as plt
-import networkx as nx
+import geopandas as gpd
 
+def plot_population_and_routes(zip_gdf, routes_gdf, output_file=None):
+    """
+    Plot population by ZIP code and overlay evacuation routes.
 
-# Visualize the combined graph with ZIP code nodes and routes.
-def visualize_combined_graph(graph):
- 
-    pos = nx.get_node_attributes(graph, 'pos')
-
-    # Separate ZIP code nodes and route nodes
-    zip_nodes = [n for n, d in graph.nodes(data=True) if d.get('type') == 'zip_code']
-    route_nodes = [n for n, d in graph.nodes(data=True) if d.get('type') == 'route']
-
-    # Plot ZIP code nodes
-    zip_positions = {n: pos[n] for n in zip_nodes}
-    nx.draw_networkx_nodes(graph, zip_positions, node_size=50, node_color='red', label='ZIP Codes')
-
-    # Plot route nodes
-    route_positions = {n: pos[n] for n in route_nodes}
-    nx.draw_networkx_nodes(graph, route_positions, node_size=10, node_color='blue', label='Routes')
-
-    # Plot edges
-    nx.draw_networkx_edges(graph, pos, edge_color='gray')
-
+    Args:
+        zip_gdf (gpd.GeoDataFrame): GeoDataFrame with ZIP code and population data.
+        routes_gdf (gpd.GeoDataFrame): GeoDataFrame with evacuation routes.
+        output_file (str): Optional. Path to save the plot.
+    """
+    fig, ax = plt.subplots(1, 1, figsize=(14, 10))
+    
+    # Plot ZIP codes with population data
+    zip_gdf.plot(column='Population', cmap='OrRd', legend=True, ax=ax, missing_kwds={
+        "color": "lightgrey",
+        "label": "No Data"
+    })
+    
+    # Overlay evacuation routes
+    routes_gdf.plot(ax=ax, color='blue', linewidth=1, label="Evacuation Routes")
+    
+    plt.title("Population by ZIP Code with Evacuation Routes")
     plt.legend()
-    plt.title("ZIP Code Nodes and Evacuation Routes")
+    
+    if output_file:
+        plt.savefig(output_file, dpi=300)
     plt.show()
