@@ -1,11 +1,21 @@
 {
-    // Name this configuration
-    "name": "Codespace for Skills!",
+    "name": "OEM Tampa Capstone Project",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "."
+    },
     "customizations": {
         "vscode": {
             "extensions": [
-                "GitHub.copilot"
-            ]
+                "GitHub.copilot",
+                "ms-python.python"
+            ],
+            "settings": {
+                "python.pythonPath": "/usr/local/bin/python" // Ensure the Python interpreter in the container is used
+            }
         }
-    }
+    },
+    "forwardPorts": [8000],  // Example if you expose a port
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+    "workspaceFolder": "/workspace"
 }

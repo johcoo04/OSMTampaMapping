@@ -1,14 +1,15 @@
 import networkx as nx
 from shapely.geometry import LineString
 
+# Converts ZIP codes to a dictionary of nodes (centroids).
 def create_zip_nodes(zip_codes_gdf):
-    # Convert ZIP codes to dictionary of nodes (centroids)
     zip_nodes = {
         row['ZipCode']: (row.geometry.centroid.x, row.geometry.centroid.y)
         for _, row in zip_codes_gdf.iterrows()
     }
     return zip_nodes
 
+# Adds ZIP code nodes to the graph.
 def add_zip_nodes(graph, zip_nodes):
     for zip_code, coords in zip_nodes.items():
         graph.add_node(zip_code, pos=coords, type='zip_code')
