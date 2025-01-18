@@ -5,7 +5,10 @@ from visualize import visualize_combined_graph
 import os
 
 # Configure logging
-logger = setup_logging('main.log','main')
+logger = setup_logging('main.log', 'main')
+
+# Test log message
+logger.info("Logging setup complete. This is a test log message.")
 
 # File paths
 zip_geojson_path = "data/Zip_Codes_Tampa.geojson"

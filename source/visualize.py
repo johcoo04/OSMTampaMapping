@@ -4,7 +4,7 @@ import logging
 from loggingFormatterEST import setup_logging  # Import from your custom loggingFormatterEST.py
 
 # Configure logging
-logger = setup_logging('visualize','visualize')
+logger = setup_logging('visualize.log','visualize')
 
 # Visualize the combined graph with ZIP code nodes and routes.
 def visualize_combined_graph(graph):

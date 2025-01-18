@@ -1,6 +1,10 @@
 import networkx as nx
 from shapely.geometry import LineString
 import geopandas as gpd
+from loggingFormatterEST import setup_logging
+
+# Configure logging
+logger = setup_logging('process_graph.log', 'process_graph')
 
 # Converts ZIP codes to a dictionary of nodes (centroids).
 def create_zip_nodes(zip_codes_gdf):
@@ -8,12 +12,14 @@ def create_zip_nodes(zip_codes_gdf):
         row['ZipCode']: (row.geometry.centroid.x, row.geometry.centroid.y)
         for _, row in zip_codes_gdf.iterrows()
     }
+    logger.debug("Created ZIP nodes: %s", zip_nodes)
     return zip_nodes
 
 # Adds ZIP code nodes to the graph.
 def add_zip_nodes(graph, zip_nodes):
     for zip_code, coords in zip_nodes.items():
         graph.add_node(zip_code, pos=coords, type='zip_code')
+    logger.debug("Added ZIP nodes to graph: %s", graph.nodes(data=True))
 
 # Adds route nodes and edges to the graph.
 def add_route_nodes_and_edges(graph, routes_gdf):
@@ -33,6 +39,7 @@ def add_route_nodes_and_edges(graph, routes_gdf):
                 graph.add_node(end, pos=end_pos, type='route')
 
             graph.add_edge(start, end, weight=LineString([start_pos, end_pos]).length)
+    logger.debug("Added route nodes and edges to graph: %s", graph.edges(data=True))
 
 def simplify_graph(graph):
     nodes_to_remove = []
@@ -53,8 +60,13 @@ def simplify_graph(graph):
                     nodes_to_remove.append(node)
 
     graph.remove_nodes_from(nodes_to_remove)
+    logger.debug("Simplified graph: %s", graph.nodes(data=True))
 
-def combine_data_to_graph(combined_gdf):
+def combine_data_to_graph(zip_codes_gdf, routes_gdf):
     graph = nx.Graph()
+    zip_nodes = create_zip_nodes(zip_codes_gdf)
+    add_zip_nodes(graph, zip_nodes)
+    add_route_nodes_and_edges(graph, routes_gdf)
     simplify_graph(graph)
+    logger.debug("Combined graph: %s", graph.nodes(data=True))
     return graph
