@@ -2,14 +2,8 @@ import matplotlib.pyplot as plt
 import geopandas as gpd
 import matplotlib.patches as mpatches
 
-def plot_population_and_routes(zip_gdf, routes_gdf):
-    """
-    Plot population by ZIP code and overlay evacuation routes.
-
-    Args:
-        zip_gdf (gpd.GeoDataFrame): GeoDataFrame with ZIP code and population data.
-        routes_gdf (gpd.GeoDataFrame): GeoDataFrame with evacuation routes.
-    """
+#Plot population by ZIP code and overlay evacuation routes.
+def plot_population_and_routes(zip_gdf, routes_gdf):    
     fig, ax = plt.subplots(1, 1, figsize=(14, 10))
     
     # Plot ZIP codes with population data
