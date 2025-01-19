@@ -35,4 +35,4 @@ combined_graph = combine_data_to_graph(combined_gdf)
 
 # Visualize the graph
 logger.info("Visualizing the graph")
-#visualize_combined_graph(combined_graph)
+visualize_combined_graph(combined_graph)
