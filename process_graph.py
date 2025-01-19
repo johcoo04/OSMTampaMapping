@@ -2,16 +2,8 @@ import geopandas as gpd
 import networkx as nx
 from shapely.geometry import LineString
 
+# Simplify a graph by merging intermediate nodes that form straight lines.
 def simplify_graph_topology(gdf):
-    """
-    Simplify a graph by merging intermediate nodes that form straight lines.
-
-    Args:
-        gdf (gpd.GeoDataFrame): GeoDataFrame of line geometries.
-
-    Returns:
-        nx.Graph: Simplified graph with merged intermediate nodes.
-    """
     simplified_graph = nx.Graph()
 
     for _, row in gdf.iterrows():
@@ -61,18 +53,7 @@ def simplify_graph_topology(gdf):
 
     return simplified_graph
 
+# Create and simplify a graph from a GeoJSON file.
 def create_and_simplify_graph(file_path):
-    """
-    Create and simplify a graph from a GeoJSON file.
-
-    Args:
-        file_path (str): Path to the GeoJSON file.
-
-    Returns:
-        nx.Graph: Simplified graph with nodes and edges.
-    """
-    # Load the GeoJSON file
     gdf = gpd.read_file(file_path)
-
-    # Simplify the graph
     return simplify_graph_topology(gdf)

@@ -6,13 +6,11 @@ import matplotlib.patches as mpatches
 def plot_population_and_routes(zip_gdf, routes_gdf):    
     fig, ax = plt.subplots(1, 1, figsize=(14, 10))
     
-    # Plot ZIP codes with population data
     zip_gdf.plot(column='Population', cmap='OrRd', legend=True, ax=ax, missing_kwds={
         "color": "lightgrey",
         "label": "No Data"
     })
     
-    # Define a color map for road types
     road_type_colors = {
         'C': 'green',    # County road
         'H': 'blue',     # Highway
@@ -33,4 +31,4 @@ def plot_population_and_routes(zip_gdf, routes_gdf):
     
     # Save the plot to a file
     plt.savefig('colorize_routes.png')
-    plt.show()
+    
