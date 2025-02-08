@@ -1,6 +1,8 @@
 import logging
 import geopandas as gpd
 import pandas as pd
+import json
+from shapely.geometry import Point
 
 from inspect_csv import inspect_csv
 from loggingFormatterEST import setup_logging
@@ -28,27 +30,53 @@ def load_zip_geojson(file_path, zip_column="Zip_Code"):
     gdf['type'] = 'zip_code'
     return gdf
 
-# Loads routes GeoJSON.
-def load_routes_geojson(file_path):
-    gdf = load_geojson(file_path)
+def load_centroids(json_path):
+    with open(json_path, 'r') as f:
+        centroids_data = json.load(f)
     
-    # Check if the necessary columns are present
-    required_columns = {'geometry'}
-    if not required_columns.issubset(gdf.columns):
-        raise ValueError(f"Missing required columns in routes_gdf: {required_columns - set(gdf.columns)}")
+    centroids_list = [
+        {'ZipCode': zip_code, 'geometry': Point(data['centroid_x'], data['centroid_y'])}
+        for zip_code, data in centroids_data.items()
+    ]
     
-    gdf['type'] = 'route'
-    return gdf
+    centroids_gdf = gpd.GeoDataFrame(centroids_list, crs="EPSG:3857")
+    return centroids_gdf
 
-# Combine ZIP code and route data into a single GeoDataFrame
-def combine_geojson_data(zip_geojson_path, routes_geojson_path):
-    zip_codes_gdf = load_zip_geojson(zip_geojson_path)
-    routes_gdf = load_routes_geojson(routes_geojson_path)
-    combined_gdf = gpd.GeoDataFrame(pd.concat([zip_codes_gdf, routes_gdf], ignore_index=True))
-    return combined_gdf
+def load_routes(geojson_path):
+    routes_gdf = gpd.read_file(geojson_path)
+    routes_gdf = routes_gdf.to_crs(epsg=3857)  # Ensure the CRS matches the centroids
+    return routes_gdf
 
-# Save the combined GeoDataFrame to a CSV file
-def save_combined_geojson_to_csv(combined_gdf, output_csv_path):
-    combined_gdf.to_csv(output_csv_path, index=False)
-    inspect_csv(output_csv_path)
+def calculate_min_distances(centroids_gdf, routes_gdf):
+    min_distances = []
+    
+    for centroid in centroids_gdf.itertuples():
+        min_distance = routes_gdf.distance(centroid.geometry).min()
+        min_distances.append({'ZipCode': centroid.ZipCode, 'min_distance': min_distance})
+    
+    return pd.DataFrame(min_distances)
+
+def create_zip_code_centroids(geojson_path, output_json_path):
+    # Load the GeoJSON file
+    zip_polygons = gpd.read_file(geojson_path)
+    
+    # Print the columns to identify the correct column name
+    print(zip_polygons.columns)
+
+    # Reproject to a projected CRS for accurate centroid calculations
+    zip_polygons = zip_polygons.to_crs(epsg=3857)  # Web Mercator projection
+    zip_polygons['centroid'] = zip_polygons.geometry.centroid
+
+    # Assuming the correct column name is 'Zip_Code'
+    zip_centroids = {
+        row['Zip_Code']: {'centroid_x': row.centroid.x, 'centroid_y': row.centroid.y}
+        for _, row in zip_polygons.iterrows()
+    }
+
+    # Save the dictionary to a JSON file
+    with open(output_json_path, 'w') as json_file:
+        json.dump(zip_centroids, json_file, indent=4)
+
+    print(f"ZIP code centroids saved to {output_json_path}")
+    logger.info(f"ZIP code centroids saved to {output_json_path}")
 
