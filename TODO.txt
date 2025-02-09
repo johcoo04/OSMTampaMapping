@@ -1,0 +1,17 @@
+TODO
+
+In your process_geojson you know that it will print out a data frame with a "type" this type will represent the type of road you are driving on 
+
+What the TYPE Column Represents:
+Values (C, H, M, P):
+
+These appear to represent different road or route types.
+Common classifications might be:
+C: County road
+H: Highway
+M: Main road
+P: Peripheral or Primary road
+
+This is important because each of these types of roads have different flows, which will affect our answer because if our point is maximum flow
+it may be more reasonable to send a lot more on longer routes on highways instead of just shorter drives through county roads
+
