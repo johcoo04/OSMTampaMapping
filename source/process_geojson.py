@@ -1,10 +1,7 @@
-import logging
 import geopandas as gpd
-import pandas as pd
 import json
 from shapely.geometry import Point
 
-from inspect_csv import inspect_csv
 from loggingFormatterEST import setup_logging
 
 # Configure logging
@@ -47,22 +44,15 @@ def load_routes(geojson_path):
     routes_gdf = routes_gdf.to_crs(epsg=3857)  # Ensure the CRS matches the centroids
     return routes_gdf
 
-def calculate_min_distances(centroids_gdf, routes_gdf):
-    min_distances = []
-    
-    for centroid in centroids_gdf.itertuples():
-        min_distance = routes_gdf.distance(centroid.geometry).min()
-        min_distances.append({'ZipCode': centroid.ZipCode, 'min_distance': min_distance})
-    
-    return pd.DataFrame(min_distances)
+def load_ramps(geojson_path):
+    ramps_gdf = gpd.read_file(geojson_path)
+    ramps_gdf = ramps_gdf.to_crs(epsg=3857)  # Ensure the CRS matches the centroids
+    return ramps_gdf
 
 def create_zip_code_centroids(geojson_path, output_json_path):
     # Load the GeoJSON file
     zip_polygons = gpd.read_file(geojson_path)
     
-    # Print the columns to identify the correct column name
-    print(zip_polygons.columns)
-
     # Reproject to a projected CRS for accurate centroid calculations
     zip_polygons = zip_polygons.to_crs(epsg=3857)  # Web Mercator projection
     zip_polygons['centroid'] = zip_polygons.geometry.centroid
@@ -77,6 +67,5 @@ def create_zip_code_centroids(geojson_path, output_json_path):
     with open(output_json_path, 'w') as json_file:
         json.dump(zip_centroids, json_file, indent=4)
 
-    print(f"ZIP code centroids saved to {output_json_path}")
     logger.info(f"ZIP code centroids saved to {output_json_path}")
 

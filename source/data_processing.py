@@ -1,23 +1,6 @@
 import geopandas as gpd
-import json
-from shapely.geometry import Point, LineString
-
-def load_centroids(json_path):
-    with open(json_path, 'r') as f:
-        centroids_data = json.load(f)
-    
-    centroids_list = [
-        {'ZipCode': zip_code, 'geometry': Point(data['centroid_x'], data['centroid_y'])}
-        for zip_code, data in centroids_data.items()
-    ]
-    
-    centroids_gdf = gpd.GeoDataFrame(centroids_list, crs="EPSG:3857")
-    return centroids_gdf
-
-def load_routes(geojson_path):
-    routes_gdf = gpd.read_file(geojson_path)
-    routes_gdf = routes_gdf.to_crs(epsg=3857)  # Ensure the CRS matches the centroids
-    return routes_gdf
+from shapely.geometry import LineString
+from shapely.ops import unary_union
 
 def calculate_min_distances(centroids_gdf, routes_gdf):
     min_distances = []
@@ -32,3 +15,17 @@ def calculate_min_distances(centroids_gdf, routes_gdf):
         lines.append(LineString([centroid.geometry, nearest_point]))
     
     return min_distances, lines
+
+def filter_ramps_within_distance(ramps_gdf, routes_gdf, distance=500):
+    filtered_ramps = ramps_gdf[ramps_gdf.geometry.apply(lambda ramp: routes_gdf.distance(ramp).min() <= distance)]
+    return filtered_ramps
+
+def merge_close_nodes(nodes_gdf, distance=50):
+    merged_nodes = []
+    while not nodes_gdf.empty:
+        node = nodes_gdf.iloc[0]
+        close_nodes = nodes_gdf[nodes_gdf.distance(node.geometry) <= distance]
+        centroid = unary_union(close_nodes.geometry).centroid
+        merged_nodes.append({'geometry': centroid})
+        nodes_gdf = nodes_gdf.drop(close_nodes.index)
+    return gpd.GeoDataFrame(merged_nodes, crs=nodes_gdf.crs)

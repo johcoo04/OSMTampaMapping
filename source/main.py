@@ -1,7 +1,8 @@
 import logging
 import pandas as pd
 import geopandas as gpd
-from data_processing import load_centroids, load_routes, calculate_min_distances
+from process_geojson import load_centroids, load_routes, load_ramps
+from data_processing import calculate_min_distances, filter_ramps_within_distance, merge_close_nodes
 from visualize import visualize
 
 # Configure logging
@@ -16,7 +17,7 @@ zip_geojson_path = "data/Zip_Codes_Tampa.geojson"
 routes_geojson_path = "data/Evacuation_Routes_Tampa.geojson"
 output_json_path = "data/zip_code_centroids.json"
 output_csv_path = "data/min_distances.csv"
-output_image_path = "data/evacuation_routes_with_centroids_and_ramps.png"
+output_image_path = "data/evacuation_routes_with_centroids.png"
 ramps_geojson_path = "data/Ramps_TDA.geojson"
 
 # Commented out since data is not changing
@@ -36,6 +37,10 @@ centroids_gdf = load_centroids(output_json_path)
 logger.info("Loading evacuation routes GeoJSON")
 routes_gdf = load_routes(routes_geojson_path)
 
+# Load ramps GeoJSON
+logger.info("Loading ramps GeoJSON")
+ramps_gdf = load_ramps(ramps_geojson_path)
+
 # Calculate minimum distances
 logger.info("Calculating minimum distances from centroids to evacuation routes")
 min_distances, lines = calculate_min_distances(centroids_gdf, routes_gdf)
@@ -48,7 +53,15 @@ logger.info(f"Minimum distances saved to {output_csv_path}")
 # Create a GeoDataFrame for the lines
 lines_gdf = gpd.GeoDataFrame(geometry=lines, crs="EPSG:3857")
 
-# Visualize the evacuation routes, centroids, and shortest paths with ramps
-logger.info("Visualizing the evacuation routes, centroids, and shortest paths with ramps")
-visualize(centroids_gdf, routes_gdf, lines_gdf, output_image_path)
+# Filter ramps within 500 meters of evacuation routes
+logger.info("Filtering ramps within 500 meters of evacuation routes")
+filtered_ramps_gdf = filter_ramps_within_distance(ramps_gdf, routes_gdf, distance=500)
+
+# Merge close nodes within 50 meters
+logger.info("Merging close nodes within 50 meters")
+merged_nodes_gdf = merge_close_nodes(filtered_ramps_gdf, distance=50)
+
+# Visualize the evacuation routes, centroids, and filtered ramps
+logger.info("Visualizing the evacuation routes, centroids, and filtered ramps")
+visualize(centroids_gdf, routes_gdf, lines_gdf, merged_nodes_gdf, output_image_path)
 logger.info(f"Visualization saved to {output_image_path}")
