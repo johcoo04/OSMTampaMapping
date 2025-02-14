@@ -37,6 +37,11 @@ def load_ramps(geojson_path):
     ramps_gdf = ramps_gdf.to_crs(epsg=3857)  # Ensure the CRS matches the centroids
     return ramps_gdf
 
+def load_intersections(intersections_geojson_path):
+    intersections_gdf = gpd.read_file(intersections_geojson_path)
+    intersections_gdf = intersections_gdf.to_crs(epsg=3857)  # Ensure the CRS matches the centroids
+    return intersections_gdf
+
 def create_zip_code_centroids(geojson_path, output_json_path):
     # Load the GeoJSON file
     zip_polygons = gpd.read_file(geojson_path)

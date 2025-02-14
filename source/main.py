@@ -3,8 +3,8 @@ import pandas as pd
 import geopandas as gpd
 import numpy as np
 from process_json import load_centroids, load_population_data
-from process_geojson import load_routes, load_ramps
-from process_geoDataFrames import create_nodes_along_routes, create_intersection_nodes, calculate_min_distances_to_routes, calculate_min_distances_to_ramps, filter_ramps_near_highways, merge_close_nodes
+import process_geojson as pgj
+import process_geoDataFrames as pgdf
 from visualize import visualize
 from create_graph import create_graph
 
@@ -26,11 +26,11 @@ def main():
     ''' Commented out since data is not changing often'''
     # Load Zip GeoJSON Data
     # logger.info("Reads in GeoJSON data")
-    # zip_gdf = load_zip_geojson(zip_geojson_path)
+    # zip_gdf = pgj.load_zip_geojson(zip_geojson_path)
 
     # Create ZIP code centroids and save to JSON
     # logger.info("Creating ZIP code centroids and saving to JSON")
-    # create_zip_code_centroids(zip_geojson_path, output_json_path)
+    # pgj.create_zip_code_centroids(zip_geojson_path, output_json_path)
 
     # Load centroids JSON
     logger.info("Loading centroids JSON")
@@ -38,27 +38,39 @@ def main():
 
     # Load evacuation routes GeoJSON
     logger.info("Loading evacuation routes GeoJSON")
-    routes_gdf = load_routes(routes_geojson_path)
+    routes_gdf = pgj.load_routes(routes_geojson_path)
 
     # Load ramps GeoJSON
     logger.info("Loading ramps GeoJSON")
-    ramps_gdf = load_ramps(ramps_geojson_path)
+    ramps_gdf = pgj.load_ramps(ramps_geojson_path)
 
     # Filter ramps near highways
     logger.info("Filtering ramps within 500 meters of the highways")
-    filtered_ramps_gdf = filter_ramps_near_highways(ramps_gdf, routes_gdf, distance=500)
+    filtered_ramps_gdf = pgdf.filter_ramps_near_highways(ramps_gdf, routes_gdf, distance=500)
 
     # Merge close nodes within 50 meters
     logger.info("Merging close nodes within 500 meters")
-    merged_nodes_gdf = merge_close_nodes(filtered_ramps_gdf, distance=500)
+    merged_ramp_nodes_gdf = pgdf.merge_close_nodes(filtered_ramps_gdf, distance=500)
+
+    # Load intersections GeoJSON
+    logger.info("Loading intersections GeoJSON")
+    intersections_gdf = pgj.load_intersections(intersections_geojson_path)
+
+    # Filter intersections near evacuation routes
+    logger.info("Filtering intersections within 50 meters of evacuation routes")
+    filtered_intersections_gdf = pgdf.filter_intersections_near_route(intersections_gdf, routes_gdf, distance=50)
+
+    # Merge close intersections within 500 meters
+    logger.info("Merging close intersections within 500 meters")
+    merged_intersection_nodes_gdf = pgdf.merge_close_nodes(filtered_intersections_gdf, distance=500)
 
     # Calculate minimum distances from centroids to evacuation routes
     logger.info("Calculating minimum distances from centroids to evacuation routes")
-    route_min_distances, route_lines = calculate_min_distances_to_routes(centroids_gdf, routes_gdf)
+    route_min_distances, route_lines = pgdf.calculate_min_distances_to_routes(centroids_gdf, routes_gdf)
 
     # Calculate minimum distances from centroids to ramps
     logger.info("Calculating minimum distances from centroids to ramps")
-    ramp_min_distances, ramp_lines = calculate_min_distances_to_ramps(centroids_gdf, merged_nodes_gdf, num_paths=1)
+    ramp_min_distances, ramp_lines = pgdf.calculate_min_distances_to_ramps(centroids_gdf, merged_ramp_nodes_gdf, num_paths=1)
 
     # Save the results to a CSV file
     min_distances_df = pd.DataFrame(route_min_distances + ramp_min_distances)
@@ -70,18 +82,18 @@ def main():
     ramp_lines_gdf = gpd.GeoDataFrame(geometry=ramp_lines, crs="EPSG:3857")
 
     # Create nodes for intersections and route points
-    #intersection_nodes_gdf = create_intersection_nodes(routes_gdf)
-    #route_nodes_gdf = create_nodes_along_routes(routes_gdf, interval=500)
+    # intersection_nodes_gdf = pgdf.create_nodes_along_routes(routes_gdf, interval=500)
+    #route_nodes_gdf = pgdf.create_nodes_along_routes(routes_gdf, interval=500)
 
     # Visualize the evacuation routes, centroids, and filtered ramps
     logger.info("Visualizing the evacuation routes, centroids, and filtered ramps")
-    #visualize(centroids_gdf, routes_gdf, route_lines_gdf, ramp_lines_gdf, merged_nodes_gdf, intersection_nodes_gdf, route_nodes_gdf, output_image_path)
-    visualize(centroids_gdf, routes_gdf, route_lines_gdf, ramp_lines_gdf, merged_nodes_gdf, output_image_path)
+    # visualize(centroids_gdf, routes_gdf, route_lines_gdf, ramp_lines_gdf, merged_ramp_nodes_gdf, merged_intersection_nodes_gdf, route_nodes_gdf, output_image_path)
+    visualize(centroids_gdf, routes_gdf, route_lines_gdf, ramp_lines_gdf, merged_ramp_nodes_gdf, merged_intersection_nodes_gdf, output_image_path)
     logger.info(f"Visualization saved to {output_image_path}")
 
     # # Create a graph from the GeoDataFrames
     # logger.info("Creating a graph from the GeoDataFrames")
-    # G = create_graph(centroids_gdf, routes_gdf, merged_nodes_gdf, route_lines_gdf, ramp_lines_gdf, intersection_nodes_gdf, route_nodes_gdf)
+    # G = create_graph(centroids_gdf, routes_gdf, merged_ramp_nodes_gdf, route_lines_gdf, ramp_lines_gdf, merged_intersection_nodes_gdf, route_nodes_gdf)
 
     # # Perform maximum flow analysis (example)
     # source = 'some_source_node'

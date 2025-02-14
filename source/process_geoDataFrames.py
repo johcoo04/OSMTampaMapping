@@ -1,5 +1,5 @@
 import geopandas as gpd
-from shapely.geometry import LineString
+from shapely.geometry import LineString, Point, MultiPoint, GeometryCollection
 from shapely.ops import unary_union
 
 def filter_ramps_near_highways(ramps_gdf, routes_gdf, distance=500):
@@ -33,9 +33,9 @@ def calculate_min_distances_to_ramps(centroids_gdf, ramps_gdf, num_paths=3):
             lines.append(LineString([centroid.geometry, nearest_point]))
     return min_distances, lines
 
-def filter_ramps_within_distance(ramps_gdf, routes_gdf, distance=500):
-    filtered_ramps = ramps_gdf[ramps_gdf.geometry.apply(lambda ramp: routes_gdf.distance(ramp).min() <= distance)]
-    return filtered_ramps
+def filter_intersections_near_route(intersections_gdf, routes_gdf, distance=500):
+    filtered_intersections = intersections_gdf[intersections_gdf.geometry.apply(lambda intersection: routes_gdf.distance(intersection).min() <= distance)]
+    return filtered_intersections
 
 def merge_close_nodes(nodes_gdf, distance=50):
     merged_nodes = []
@@ -57,17 +57,21 @@ def create_nodes_along_routes(routes_gdf, interval=500):
             nodes.append({'geometry': point})
     return gpd.GeoDataFrame(nodes, crs=routes_gdf.crs)
 
-def create_intersection_nodes(routes_gdf):
-    intersections = []
-    for i, route1 in enumerate(routes_gdf.geometry):
-        for j, route2 in enumerate(routes_gdf.geometry):
-            if i >= j:
-                continue
-            intersection = route1.intersection(route2)
-            if not intersection.is_empty:
-                if intersection.geom_type == 'Point':
-                    intersections.append({'geometry': intersection})
-                elif intersection.geom_type == 'MultiPoint':
-                    for point in intersection:
-                        intersections.append({'geometry': point})
-    return gpd.GeoDataFrame(intersections, crs=routes_gdf.crs)
+# def create_intersection_nodes(routes_gdf):
+#     intersections = []
+#     for i, route1 in enumerate(routes_gdf.geometry):
+#         for j, route2 in enumerate(routes_gdf.geometry):
+#             if i >= j:
+#                 continue
+#             intersection = route1.intersection(route2)
+#             if not intersection.is_empty:
+#                 if intersection.geom_type == 'Point':
+#                     intersections.append({'geometry': intersection})
+#                 elif intersection.geom_type == 'MultiPoint':
+#                     for point in intersection.geoms:
+#                         intersections.append({'geometry': point})
+#                 elif intersection.geom_type == 'GeometryCollection':
+#                     for geom in intersection.geoms:
+#                         if geom.geom_type == 'Point':
+#                             intersections.append({'geometry': geom})
+#     return gpd.GeoDataFrame(intersections, crs=routes_gdf.crs)
