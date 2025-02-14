@@ -1,7 +1,7 @@
 import geopandas as gpd
 import matplotlib.pyplot as plt
 
-def visualize(centroids_gdf, routes_gdf, lines_gdf, merged_nodes_gdf, output_image_path):
+def visualize(centroids_gdf, routes_gdf, route_lines_gdf, ramp_lines_gdf, merged_nodes_gdf, output_image_path):
     # Plot the data
     fig, ax = plt.subplots(figsize=(12, 12))
     
@@ -18,7 +18,8 @@ def visualize(centroids_gdf, routes_gdf, lines_gdf, merged_nodes_gdf, output_ima
         routes_gdf[routes_gdf['TYPE'] == road_type].plot(ax=ax, color=color, linewidth=1, label=f'Road Type {road_type}')
     
     centroids_gdf.plot(ax=ax, color='black', markersize=5, label='Centroids')
-    lines_gdf.plot(ax=ax, color='orange', linewidth=1, linestyle='--', label='Shortest Paths')
+    route_lines_gdf.plot(ax=ax, color='green', linewidth=1, linestyle='--', label='Shortest Paths to Routes')
+    ramp_lines_gdf.plot(ax=ax, color='orange', linewidth=1, linestyle='--', label='Shortest Paths to Ramps')
     merged_nodes_gdf.plot(ax=ax, color='cyan', markersize=5, label='Filtered Ramps')
     
     # Add ZIP code labels

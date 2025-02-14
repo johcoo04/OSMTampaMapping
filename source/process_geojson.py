@@ -27,18 +27,6 @@ def load_zip_geojson(file_path, zip_column="Zip_Code"):
     gdf['type'] = 'zip_code'
     return gdf
 
-def load_centroids(json_path):
-    with open(json_path, 'r') as f:
-        centroids_data = json.load(f)
-    
-    centroids_list = [
-        {'ZipCode': zip_code, 'geometry': Point(data['centroid_x'], data['centroid_y'])}
-        for zip_code, data in centroids_data.items()
-    ]
-    
-    centroids_gdf = gpd.GeoDataFrame(centroids_list, crs="EPSG:3857")
-    return centroids_gdf
-
 def load_routes(geojson_path):
     routes_gdf = gpd.read_file(geojson_path)
     routes_gdf = routes_gdf.to_crs(epsg=3857)  # Ensure the CRS matches the centroids
