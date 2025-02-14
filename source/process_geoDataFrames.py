@@ -57,21 +57,5 @@ def create_nodes_along_routes(routes_gdf, interval=500):
             nodes.append({'geometry': point})
     return gpd.GeoDataFrame(nodes, crs=routes_gdf.crs)
 
-# def create_intersection_nodes(routes_gdf):
-#     intersections = []
-#     for i, route1 in enumerate(routes_gdf.geometry):
-#         for j, route2 in enumerate(routes_gdf.geometry):
-#             if i >= j:
-#                 continue
-#             intersection = route1.intersection(route2)
-#             if not intersection.is_empty:
-#                 if intersection.geom_type == 'Point':
-#                     intersections.append({'geometry': intersection})
-#                 elif intersection.geom_type == 'MultiPoint':
-#                     for point in intersection.geoms:
-#                         intersections.append({'geometry': point})
-#                 elif intersection.geom_type == 'GeometryCollection':
-#                     for geom in intersection.geoms:
-#                         if geom.geom_type == 'Point':
-#                             intersections.append({'geometry': geom})
-#     return gpd.GeoDataFrame(intersections, crs=routes_gdf.crs)
+def trim_intersections(intersections_gdf, step=5):
+    return intersections_gdf.iloc[::step]

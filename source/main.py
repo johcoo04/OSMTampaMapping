@@ -64,6 +64,10 @@ def main():
     logger.info("Merging close intersections within 500 meters")
     merged_intersection_nodes_gdf = pgdf.merge_close_nodes(filtered_intersections_gdf, distance=500)
 
+    # Trim intersections to include only every 5th node
+    logger.info("Trimming intersections to include every 5th node")
+    trimmed_intersections_gdf = pgdf.trim_intersections(merged_intersection_nodes_gdf, step=5)
+
     # Calculate minimum distances from centroids to evacuation routes
     logger.info("Calculating minimum distances from centroids to evacuation routes")
     route_min_distances, route_lines = pgdf.calculate_min_distances_to_routes(centroids_gdf, routes_gdf)
@@ -87,8 +91,8 @@ def main():
 
     # Visualize the evacuation routes, centroids, and filtered ramps
     logger.info("Visualizing the evacuation routes, centroids, and filtered ramps")
-    # visualize(centroids_gdf, routes_gdf, route_lines_gdf, ramp_lines_gdf, merged_ramp_nodes_gdf, merged_intersection_nodes_gdf, route_nodes_gdf, output_image_path)
-    visualize(centroids_gdf, routes_gdf, route_lines_gdf, ramp_lines_gdf, merged_ramp_nodes_gdf, merged_intersection_nodes_gdf, output_image_path)
+    # visualize(centroids_gdf, routes_gdf, route_lines_gdf, ramp_lines_gdf, merged_ramp_nodes_gdf, trimmed_intersections_gdf, route_nodes_gdf, output_image_path)
+    visualize(centroids_gdf, routes_gdf, route_lines_gdf, ramp_lines_gdf, merged_ramp_nodes_gdf, trimmed_intersections_gdf, output_image_path)
     logger.info(f"Visualization saved to {output_image_path}")
 
     # # Create a graph from the GeoDataFrames
