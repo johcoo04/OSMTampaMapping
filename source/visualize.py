@@ -1,9 +1,10 @@
 import geopandas as gpd
 import matplotlib.pyplot as plt
+import networkx as nx
 
-def visualize(centroids_gdf, routes_gdf, route_lines_gdf, ramp_lines_gdf, merged_ramp_nodes_gdf, merged_intersection_nodes_gdf, output_image_path):
+def visualize(centroids_gdf, routes_gdf, route_lines_gdf, ramp_lines_gdf, merged_ramp_nodes_gdf, trimmed_intersections_gdf, output_image_path):
 
-    # Plot the data
+    # Plot the GeoDataFrames
     fig, ax = plt.subplots(figsize=(12, 12))
     
     # Define colors for each road type
@@ -22,7 +23,7 @@ def visualize(centroids_gdf, routes_gdf, route_lines_gdf, ramp_lines_gdf, merged
     route_lines_gdf.plot(ax=ax, color='green', linewidth=1, linestyle='--', label='Shortest Paths to Routes')
     ramp_lines_gdf.plot(ax=ax, color='orange', linewidth=1, linestyle='--', label='Shortest Paths to Ramps')
     merged_ramp_nodes_gdf.plot(ax=ax, color='cyan', markersize=5, label='Filtered Ramps')
-    merged_intersection_nodes_gdf.plot(ax=ax, color='magenta', markersize=5, label='Filtered Intersections')
+    trimmed_intersections_gdf.plot(ax=ax, color='magenta', markersize=5, label='Filtered Intersections')
     
     # Add ZIP code labels
     for centroid in centroids_gdf.itertuples():
@@ -32,3 +33,25 @@ def visualize(centroids_gdf, routes_gdf, route_lines_gdf, ramp_lines_gdf, merged
     plt.title("Evacuation Routes, Centroids, Shortest Path to Ramps and Intersections")
     plt.savefig(output_image_path)
     plt.show()
+
+def draw_graph(G, output_path):
+    # Extract positions from node attributes
+    pos = nx.get_node_attributes(G, 'pos')
+
+    # Separate nodes by type
+    origin_nodes = [node for node, data in G.nodes(data=True) if data['type'] == 'origin']
+    intersection_nodes = [node for node, data in G.nodes(data=True) if data['type'] == 'intersection']
+    destination_nodes = [node for node, data in G.nodes(data=True) if data['type'] == 'destination']
+
+    plt.figure(figsize=(10, 10))
+
+    # Draw nodes with different colors based on type
+    nx.draw_networkx_nodes(G, pos, nodelist=origin_nodes, node_size=50, node_color='blue', alpha=0.7, label='Centroids')
+    nx.draw_networkx_nodes(G, pos, nodelist=intersection_nodes, node_size=50, node_color='red', alpha=0.7, label='Intersections')
+    nx.draw_networkx_nodes(G, pos, nodelist=destination_nodes, node_size=50, node_color='green', alpha=0.7, label='Ramps')
+
+    plt.legend()
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig(f"{output_path}")
+    plt.close()

@@ -1,5 +1,4 @@
 import geopandas as gpd
-import json
 from shapely.geometry import Point
 
 from loggingFormatterEST import setup_logging
@@ -42,23 +41,32 @@ def load_intersections(intersections_geojson_path):
     intersections_gdf = intersections_gdf.to_crs(epsg=3857)  # Ensure the CRS matches the centroids
     return intersections_gdf
 
-def create_zip_code_centroids(geojson_path, output_json_path):
-    # Load the GeoJSON file
-    zip_polygons = gpd.read_file(geojson_path)
+def create_zip_code_centroids(zip_geojson_path, output_path):
+    ''' Create ZIP code centroids and save to JSON '''
+    zip_gdf = gpd.read_file(zip_geojson_path)
     
-    # Reproject to a projected CRS for accurate centroid calculations
-    zip_polygons = zip_polygons.to_crs(epsg=3857)  # Web Mercator projection
-    zip_polygons['centroid'] = zip_polygons.geometry.centroid
-
-    # Assuming the correct column name is 'Zip_Code'
-    zip_centroids = {
-        row['Zip_Code']: {'centroid_x': row.centroid.x, 'centroid_y': row.centroid.y}
-        for _, row in zip_polygons.iterrows()
-    }
-
-    # Save the dictionary to a JSON file
-    with open(output_json_path, 'w') as json_file:
-        json.dump(zip_centroids, json_file, indent=4)
-
-    logger.info(f"ZIP code centroids saved to {output_json_path}")
+    # Ensure the CRS is projected for accurate centroid calculations
+    zip_gdf = zip_gdf.to_crs(epsg=3857)
+    
+    # Calculate centroids
+    zip_gdf['centroid'] = zip_gdf.geometry.centroid
+    
+    # Ensure the ZipCode column exists
+    if 'ZipCode' not in zip_gdf.columns:
+        zip_gdf['ZipCode'] = zip_gdf['Zip_Code'].astype(str)
+    
+    # List of ZIP codes to remove
+    zip_codes_to_remove = [
+        "33715", "33711", "34221", "34219", "33834", "33860", "33811", "33815", "33810", "33849",
+        "33540", "33541", "33543", "33544", "34638", "34655", "34688", "34685", "34677", "33759"
+    ]
+    
+    # Filter out the specified ZIP codes
+    zip_gdf = zip_gdf[~zip_gdf['ZipCode'].isin(zip_codes_to_remove)]
+    
+    centroids_gdf = zip_gdf[['ZipCode', 'centroid']].copy()
+    centroids_gdf = centroids_gdf.rename(columns={'centroid': 'geometry'})
+    centroids_gdf = gpd.GeoDataFrame(centroids_gdf, geometry='geometry')
+    centroids_gdf.to_file(output_path, driver="GeoJSON")
+    return centroids_gdf
 

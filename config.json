@@ -1,0 +1,17 @@
+{
+    "zip_geojson_path": "data/LongProcessing/Zip_Codes_Tampa.geojson",
+    "routes_geojson_path": "data/LongProcessing/Evacuation_Routes_Tampa.geojson",
+    "intersections_geojson_path": "data/LongProcessing/Intersection.geojson",
+    "ramps_geojson_path": "data/LongProcessing/Ramps_TDA.geojson",
+    
+    "centroids_path": "data/ShortProcessing/zip_code_centroids.geojson",
+    "min_distances_path": "data/ShortProcessing/min_distances.csv",
+    "filtered_ramps_path": "data/ShortProcessing/filtered_ramps.geojson",
+    "merged_ramp_nodes_path": "data/ShortProcessing/merged_ramp_nodes.geojson",
+    "filtered_intersections_path": "data/ShortProcessing/filtered_intersections.geojson",
+    "merged_intersection_nodes_path": "data/ShortProcessing/merged_intersection_nodes.geojson",
+    "trimmed_intersections_path": "data/ShortProcessing/trimmed_intersections.geojson",
+
+    "output_image_path": "data/evacuation_routes_with_centroids.png",
+    "graph_image_path": "data/evacuation_graph.png"
+}
