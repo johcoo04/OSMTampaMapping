@@ -27,7 +27,6 @@ def process_route_chunk(args):
     chunk_df, intersections_gdf, process_id, snap_distance = args
     
     edges = []
-    timing_info = []
     edge_count = 0
     start_time = time.time()
     last_time = start_time
@@ -64,18 +63,18 @@ def process_route_chunk(args):
         
         edge_count += 1
         
-        # Record timing every 10 edges
+        # Print timing every 10 edges in real-time
         if edge_count % 10 == 0:
             current_time = time.time()
             delta = current_time - last_time
-            timing_info.append((process_id, edge_count, delta))
+            print(f"Process {process_id}: Processed {edge_count} edges, last 10 took {delta:.4f} seconds")
             last_time = current_time
     
-    # Record total timing for the chunk
+    # Print total timing for the chunk
     total_time = time.time() - start_time
-    timing_info.append((process_id, edge_count, total_time, "total"))
+    print(f"Process {process_id}: Total {edge_count} edges in {total_time:.4f} seconds")
     
-    return edges, timing_info
+    return edges
 
 def create_graph(routes_gdf, intersections_gdf, snap_distance=50):
     """Create a networkx graph using intersections as nodes and routes as edges with multiprocessing"""
@@ -119,30 +118,22 @@ def create_graph(routes_gdf, intersections_gdf, snap_distance=50):
     
     # Flatten results and add edges to graph
     all_edges = []
-    all_timing_info = []
     
-    for edges, timing_info in results:
+    for edges in results:
         all_edges.extend(edges)
-        all_timing_info.extend(timing_info)
     
     G.add_edges_from(all_edges)
-    
-    # Sort and print timing information
-    all_timing_info.sort(key=lambda x: (x[0], x[1]))
-    
-    print("\nTiming Information (Process ID, Edge Count, Time in seconds):")
-    for info in all_timing_info:
-        if len(info) == 3:
-            process_id, edge_count, delta = info
-            print(f"Process {process_id}: Processed {edge_count} edges, last 10 took {delta:.4f} seconds")
-        else:
-            process_id, edge_count, total_time, _ = info
-            print(f"Process {process_id}: Total {edge_count} edges in {total_time:.4f} seconds")
     
     total_time = time.time() - start_time
     print(f"\nTotal graph creation time: {total_time:.4f} seconds")
     print(f"Created graph with {G.number_of_nodes()} nodes and {G.number_of_edges()} edges")
     
+    # Remove isolated nodes (nodes with no incoming or outgoing edges)
+    isolated_nodes = [node for node in G.nodes() if G.degree(node) == 0]
+    G.remove_nodes_from(isolated_nodes)
+    print(f"Removed {len(isolated_nodes)} isolated nodes")
+    print(f"Final graph has {G.number_of_nodes()} nodes and {G.number_of_edges()} edges")
+
     return G
 
 def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
@@ -181,7 +172,7 @@ def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
 
 def main():
     # Define data paths
-    data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'LongProcessing')
+    data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
     routes_path = os.path.join(data_dir, 'Evacuation_Routes_Tampa.geojson')
     intersections_path = os.path.join(data_dir, 'Intersection.geojson')
     output_path = os.path.join(os.path.dirname(data_dir), 'evacuation_network.png')
