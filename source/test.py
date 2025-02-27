@@ -2,6 +2,7 @@ import geopandas as gpd
 import networkx as nx
 import matplotlib.pyplot as plt
 import os
+import pickle
 from shapely.geometry import Point, LineString
 import multiprocessing
 from functools import partial
@@ -137,25 +138,29 @@ def create_graph(routes_gdf, intersections_gdf, snap_distance=50):
     return G
 
 def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
-    """Visualize the graph with matplotlib"""
+    """Visualize the graph with matplotlib using NetworkX drawing functions"""
     start_time = time.time()
     print("Starting visualization...")
     
     fig, ax = plt.subplots(figsize=(45, 45))
     
-    # Plot all routes with the same style since we're not differentiating by type
-    routes_gdf.plot(ax=ax, color='blue', linewidth=1.5, label='Routes')
+    # Extract node positions from graph attributes
+    pos = nx.get_node_attributes(G, 'pos')
     
-    # Plot intersections
-    intersections_gdf.plot(ax=ax, color='black', markersize=5, label='Intersections')
+    # Draw the graph edges
+    nx.draw_networkx_edges(G, pos, ax=ax, edge_color='blue', width=1.0, alpha=0.7)
+    print(nx)
     
-    # Add legend
-    ax.legend()
+    # Draw the graph nodes
+    nx.draw_networkx_nodes(G, pos, ax=ax, node_size=15, node_color='black', alpha=0.8)
+    
+    # Optionally draw labels (might be cluttered with many nodes)
+    # nx.draw_networkx_labels(G, pos, font_size=8, alpha=0.7)
     
     # Set title and labels
-    ax.set_title('Tampa Evacuation Routes and Intersections')
-    ax.set_xlabel('Longitude')
-    ax.set_ylabel('Latitude')
+    ax.set_title('Tampa Evacuation Network Graph')
+    ax.set_xlabel('X Coordinate')
+    ax.set_ylabel('Y Coordinate')
     
     # Remove axes
     ax.set_axis_off()
@@ -176,15 +181,36 @@ def main():
     routes_path = os.path.join(data_dir, 'Evacuation_Routes_Tampa.geojson')
     intersections_path = os.path.join(data_dir, 'Intersection.geojson')
     output_path = os.path.join(os.path.dirname(data_dir), 'evacuation_network.png')
+    pickle_path = os.path.join(data_dir, 'evacuation_graph.pickle')
     
     start_time = time.time()
-    print("Loading data...")
-    routes_gdf, intersections_gdf = load_data(routes_path, intersections_path)
-    loading_time = time.time() - start_time
-    print(f"Data loading completed in {loading_time:.4f} seconds")
     
-    print("Creating graph...")
-    G = create_graph(routes_gdf, intersections_gdf)
+    # Check if pickle file exists
+    if os.path.exists(pickle_path):
+        print(f"Loading graph from pickle file: {pickle_path}")
+        with open(pickle_path, 'rb') as f:
+            G = pickle.load(f)
+        print(f"Loaded graph with {G.number_of_nodes()} nodes and {G.number_of_edges()} edges")
+        loading_time = time.time() - start_time
+        print(f"Graph loading completed in {loading_time:.4f} seconds")
+        
+        # Load the geodataframes for visualization
+        print("Loading data for visualization...")
+        routes_gdf, intersections_gdf = load_data(routes_path, intersections_path)
+    else:
+        print("Loading data...")
+        routes_gdf, intersections_gdf = load_data(routes_path, intersections_path)
+        loading_time = time.time() - start_time
+        print(f"Data loading completed in {loading_time:.4f} seconds")
+        
+        print("Creating graph...")
+        G = create_graph(routes_gdf, intersections_gdf)
+        
+        # Save graph to pickle file
+        print(f"Saving graph to pickle file: {pickle_path}")
+        with open(pickle_path, 'wb') as f:
+            pickle.dump(G, f)
+        print("Graph saved successfully")
     
     print("Visualizing graph...")
     visualize_graph(G, routes_gdf, intersections_gdf, output_path)
