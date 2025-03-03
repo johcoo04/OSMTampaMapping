@@ -4,9 +4,6 @@ import matplotlib.pyplot as plt
 import os
 import pickle
 from shapely.geometry import Point, LineString
-import multiprocessing
-from functools import partial
-import numpy as np
 import time
 
 def load_data(routes_path, intersections_path):
@@ -22,120 +19,6 @@ def load_data(routes_path, intersections_path):
     print(f"Loaded {len(intersections_gdf)} intersections")
     
     return routes_gdf, intersections_gdf
-
-def process_route_chunk(args):
-    """Process a chunk of routes and return edges with timing information"""
-    chunk_df, intersections_gdf, process_id, snap_distance = args
-    
-    edges = []
-    edge_count = 0
-    start_time = time.time()
-    last_time = start_time
-    
-    for idx, route in chunk_df.iterrows():
-        if route.geometry.geom_type != 'LineString':
-            continue
-            
-        # Find nearest intersections to start and end points of the route
-        start_point = Point(route.geometry.coords[0])
-        end_point = Point(route.geometry.coords[-1])
-        
-        # Calculate distances to all intersections
-        start_distances = intersections_gdf.geometry.apply(lambda geom: geom.distance(start_point))
-        end_distances = intersections_gdf.geometry.apply(lambda geom: geom.distance(end_point))
-        
-        # Find closest intersections within snap distance
-        start_node = start_distances.idxmin() if start_distances.min() <= snap_distance else None
-        end_node = end_distances.idxmin() if end_distances.min() <= snap_distance else None
-        
-        # Skip if we couldn't find both nodes
-        if start_node is None or end_node is None or start_node == end_node:
-            continue
-            
-        # Add edge with minimal attributes
-        road_name = route.get('STREET', 'unnamed')  # Default to unnamed if STREET not available
-        length = route.geometry.length
-        
-        edges.append((start_node, end_node, {
-            'road_name': road_name,
-            'weight': length,
-            'geometry': route.geometry
-        }))
-        
-        edge_count += 1
-        
-        # Print timing every 10 edges in real-time
-        if edge_count % 10 == 0:
-            current_time = time.time()
-            delta = current_time - last_time
-            print(f"Process {process_id}: Processed {edge_count} edges, last 10 took {delta:.4f} seconds")
-            last_time = current_time
-    
-    # Print total timing for the chunk
-    total_time = time.time() - start_time
-    print(f"Process {process_id}: Total {edge_count} edges in {total_time:.4f} seconds")
-    
-    return edges
-
-def create_graph(routes_gdf, intersections_gdf, snap_distance=50):
-    """Create a networkx graph using intersections as nodes and routes as edges with multiprocessing"""
-    G = nx.Graph()
-    start_time = time.time()
-    
-    # Add intersections as nodes
-    for idx, row in intersections_gdf.iterrows():
-        G.add_node(idx, 
-                   pos=(row.geometry.x, row.geometry.y), 
-                   node_type='intersection',
-                   geometry=row.geometry)
-    
-    # Process routes into edges using multiprocessing
-    print("Processing routes into edges with multiprocessing...")
-    
-    # Determine number of processes to use 
-    num_cores = multiprocessing.cpu_count()
-    print(f"Using {num_cores} CPU cores for multiprocessing")
-    
-    # Split routes into chunks based on index ranges instead of using numpy array_split
-    total_routes = len(routes_gdf)
-    chunk_size = total_routes // num_cores
-    chunks = []
-    
-    for i in range(num_cores):
-        start_idx = i * chunk_size
-        end_idx = (i + 1) * chunk_size if i < num_cores - 1 else total_routes
-        chunk = routes_gdf.iloc[start_idx:end_idx].copy()
-        chunks.append(chunk)
-    
-    # Prepare arguments for the process_route_chunk function
-    chunk_args = [
-        (chunk, intersections_gdf, i, snap_distance) 
-        for i, chunk in enumerate(chunks)
-    ]
-    
-    # Process chunks in parallel
-    with multiprocessing.Pool(processes=num_cores) as pool:
-        results = pool.map(process_route_chunk, chunk_args)
-    
-    # Flatten results and add edges to graph
-    all_edges = []
-    
-    for edges in results:
-        all_edges.extend(edges)
-    
-    G.add_edges_from(all_edges)
-    
-    total_time = time.time() - start_time
-    print(f"\nTotal graph creation time: {total_time:.4f} seconds")
-    print(f"Created graph with {G.number_of_nodes()} nodes and {G.number_of_edges()} edges")
-    
-    # Remove isolated nodes (nodes with no incoming or outgoing edges)
-    isolated_nodes = [node for node in G.nodes() if G.degree(node) == 0]
-    G.remove_nodes_from(isolated_nodes)
-    print(f"Removed {len(isolated_nodes)} isolated nodes")
-    print(f"Final graph has {G.number_of_nodes()} nodes and {G.number_of_edges()} edges")
-
-    return G
 
 def build_topological_graph(routes_gdf, intersections_gdf):
     """Create a graph using true topological connections between roads"""
