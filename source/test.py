@@ -295,7 +295,7 @@ def build_topological_graph(routes_gdf, intersections_gdf):
     return G
 
 def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
-    """Visualize the topologically connected graph"""
+    """Visualize the topologically connected graph without showing nodes"""
     start_time = time.time()
     print("Starting visualization with matplotlib...")
     
@@ -340,6 +340,8 @@ def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
             
             edge_types_drawn.add(road_type)
     
+    # COMMENTED OUT: Node visualization code
+    """
     # Separate nodes by type
     intersection_nodes = [n for n, d in G.nodes(data=True) if d.get('node_type') == 'intersection']
     route_endpoint_nodes = [n for n, d in G.nodes(data=True) if d.get('node_type') == 'route_endpoint']
@@ -357,10 +359,11 @@ def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
         ax.scatter(
             [pos[n][0] for n in route_endpoint_nodes if n in pos],
             [pos[n][1] for n in route_endpoint_nodes if n in pos],
-            s=15, c='lightgray', alpha=0.8, label='Route Endpoints'
+            s=15, c='lightgray', alpha=0.6
         )
+    """
     
-    # Add legend
+    # Add legend with just road types (no intersections since we're not showing them)
     handles, labels = ax.get_legend_handles_labels()
     unique_labels = dict(zip(labels, handles))
     ax.legend(unique_labels.values(), unique_labels.keys(), loc='upper right')
@@ -375,6 +378,8 @@ def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
     if output_path:
         plt.savefig(output_path, bbox_inches='tight', dpi=300)
         print(f"Visualization saved to {output_path}")
+    
+    # No plt.show() call
     
     total_time = time.time() - start_time
     print(f"Visualization completed in {total_time:.4f} seconds")
