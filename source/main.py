@@ -109,7 +109,7 @@ def build_topological_graph(routes_gdf, intersections_gdf):
 
 def add_centroids_to_graph(G, centroids_gdf, routes_gdf):
     """
-    Add centroids to the graph and connect them to the nearest roads
+    Add centroids to the graph and connect them to the nearest road endpoint (start or end)
     
     Parameters:
     -----------
@@ -140,47 +140,86 @@ def add_centroids_to_graph(G, centroids_gdf, routes_gdf):
     
     print(f"Added {len(centroids_gdf)} centroids as nodes")
     
-    # Connect each centroid to the nearest roads
+    # Connect each centroid to the nearest endpoint of the nearest road
     for idx, centroid in centroids_gdf.iterrows():
         centroid_id = f"c{idx}"
         centroid_point = centroid.geometry
         
-        # Find the nearest road segments (always get at least one)
+        # Find the nearest road segments
         distances = routes_gdf.geometry.apply(lambda g: g.distance(centroid_point))
         nearest_route_idx = distances.idxmin()  # Get the closest road
         nearest_route = routes_gdf.loc[nearest_route_idx]
         
-        # Get ONLY the start node from G
+        # Get both start and end nodes from G
         start_node = f"r{nearest_route_idx}_start"
+        end_node = f"r{nearest_route_idx}_end"
         
-        # Connect to start node only
+        # Calculate distance to both endpoints and connect to the closer one
         connections_added = 0
-        if start_node in G.nodes:  # Ensure the node exists
-            node_pos = G.nodes[start_node]['pos']
-            dist = Point(node_pos).distance(centroid_point)
-            
-            # Add edge with attributes
+        
+        start_dist = float('inf')
+        end_dist = float('inf')
+        
+        # Check and calculate distance to start node
+        if start_node in G.nodes:
+            start_pos = G.nodes[start_node]['pos']
+            start_dist = Point(start_pos).distance(centroid_point)
+        
+        # Check and calculate distance to end node
+        if end_node in G.nodes:
+            end_pos = G.nodes[end_node]['pos']
+            end_dist = Point(end_pos).distance(centroid_point)
+        
+        # Connect to the closest endpoint
+        if start_dist <= end_dist and start_node in G.nodes:
+            # Start node is closer
             G.add_edge(centroid_id, start_node,
                       road_name="centroid_connector",
                       road_type="Z",  # Z for centroid connector
-                      weight=dist)
+                      weight=start_dist)
+            connections_added += 1
+        elif end_dist < start_dist and end_node in G.nodes:
+            # End node is closer
+            G.add_edge(centroid_id, end_node,
+                      road_name="centroid_connector",
+                      road_type="Z",  # Z for centroid connector
+                      weight=end_dist)
             connections_added += 1
         
+        # If no connections were made, try with the second nearest road
         if connections_added == 0:
-            print(f"Warning: Could not connect centroid {idx} (ZIP {centroid.get('ZIP_CODE', '')}) to any road")
+            print(f"Warning: Could not connect centroid {idx} (ZIP {centroid.get('ZIP_CODE', '')}) to nearest road")
             
             # Try second-closest road as fallback
             if len(distances) > 1:
                 second_nearest = distances.nsmallest(2).index[1]
                 start_node_2 = f"r{second_nearest}_start"
+                end_node_2 = f"r{second_nearest}_end"
+                
+                # Calculate distances to both endpoints of second nearest road
+                start_dist_2 = float('inf')
+                end_dist_2 = float('inf')
                 
                 if start_node_2 in G.nodes:
-                    node_pos = G.nodes[start_node_2]['pos']
-                    dist = Point(node_pos).distance(centroid_point)
+                    start_pos_2 = G.nodes[start_node_2]['pos']
+                    start_dist_2 = Point(start_pos_2).distance(centroid_point)
+                
+                if end_node_2 in G.nodes:
+                    end_pos_2 = G.nodes[end_node_2]['pos']
+                    end_dist_2 = Point(end_pos_2).distance(centroid_point)
+                
+                # Connect to the closest endpoint of second nearest road
+                if start_dist_2 <= end_dist_2 and start_node_2 in G.nodes:
                     G.add_edge(centroid_id, start_node_2,
                               road_name="centroid_connector",
                               road_type="Z",
-                              weight=dist)
+                              weight=start_dist_2)
+                    connections_added += 1
+                elif end_dist_2 < start_dist_2 and end_node_2 in G.nodes:
+                    G.add_edge(centroid_id, end_node_2,
+                              road_name="centroid_connector",
+                              road_type="Z",
+                              weight=end_dist_2)
                     connections_added += 1
         
         centroid_connections += connections_added
@@ -250,16 +289,7 @@ def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
             s=100, c='blue', alpha=0.8, marker='o', edgecolor='black', label='Population Centers'
         )
         
-        # Add zip code labels next to each centroid
-        for node in centroid_nodes:
-            if node in pos:
-                x, y = pos[node]
-                zip_code = G.nodes[node].get('zip_code', '')
-                if zip_code:
-                    # Position label slightly offset from the dot
-                    ax.text(x + 1000, y + 1000, zip_code, 
-                           fontsize=12, fontweight='bold', 
-                           bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+        # Removed: ZIP code labels for centroids
     
     # Draw sink nodes as stars
     sink_nodes = [n for n, d in G.nodes(data=True) if d.get('node_type') == 'sink']
@@ -270,16 +300,7 @@ def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
             s=200, c='yellow', alpha=1.0, marker='*', edgecolor='black', label='Evacuation Points'
         )
         
-        # Add zip code labels next to each sink node
-        for node in sink_nodes:
-            if node in pos:
-                x, y = pos[node]
-                zip_code = G.nodes[node].get('zip_code', '')
-                if zip_code:
-                    # Position label slightly offset from the star
-                    ax.text(x + 1000, y + 1000, zip_code, 
-                           fontsize=14, fontweight='bold', color='red',
-                           bbox=dict(facecolor='white', alpha=0.8, edgecolor='red'))
+        # Removed: ZIP code labels for sink nodes
     
     # Add legend with road types and node types
     handles, labels = ax.get_legend_handles_labels()
@@ -389,7 +410,7 @@ def load_sink_nodes(sink_nodes_path, target_crs=3857):
 
 def add_sink_nodes_to_graph(G, sink_nodes_gdf, routes_gdf):
     """
-    Add sink nodes to the graph and connect them to the nearest roads
+    Add sink nodes to the graph and connect them to the nearest road endpoint (start or end)
     
     Parameters:
     -----------
@@ -420,7 +441,7 @@ def add_sink_nodes_to_graph(G, sink_nodes_gdf, routes_gdf):
     
     print(f"Added {len(sink_nodes_gdf)} sink nodes")
     
-    # Connect each sink node to the nearest roads
+    # Connect each sink node to the nearest endpoint of the nearest road
     for idx, sink in sink_nodes_gdf.iterrows():
         sink_id = f"s{idx}"
         sink_point = sink.geometry
@@ -430,38 +451,81 @@ def add_sink_nodes_to_graph(G, sink_nodes_gdf, routes_gdf):
         nearest_route_idx = distances.idxmin()
         nearest_route = routes_gdf.loc[nearest_route_idx]
         
-        # Get the start node from G
+        # Get both start and end nodes from G
         start_node = f"r{nearest_route_idx}_start"
+        end_node = f"r{nearest_route_idx}_end"
         
-        # Connect to start node
+        # Calculate distance to both endpoints and connect to the closer one
         connections_added = 0
+        
+        start_dist = float('inf')
+        end_dist = float('inf')
+        
+        # Check and calculate distance to start node
         if start_node in G.nodes:
-            node_pos = G.nodes[start_node]['pos']
-            dist = Point(node_pos).distance(sink_point)
-            
-            # Add edge with attributes
+            start_pos = G.nodes[start_node]['pos']
+            start_dist = Point(start_pos).distance(sink_point)
+        
+        # Check and calculate distance to end node
+        if end_node in G.nodes:
+            end_pos = G.nodes[end_node]['pos']
+            end_dist = Point(end_pos).distance(sink_point)
+        
+        # Connect to the closest endpoint
+        if start_dist <= end_dist and start_node in G.nodes:
+            # Start node is closer
             G.add_edge(sink_id, start_node,
                       road_name="sink_connector",
                       road_type="S",  # S for sink connector
-                      weight=dist)
+                      weight=start_dist)
             connections_added += 1
+            print(f"Sink {idx} connected to start node of route {nearest_route_idx}")
+        elif end_dist < start_dist and end_node in G.nodes:
+            # End node is closer
+            G.add_edge(sink_id, end_node,
+                      road_name="sink_connector",
+                      road_type="S",  # S for sink connector
+                      weight=end_dist)
+            connections_added += 1
+            print(f"Sink {idx} connected to end node of route {nearest_route_idx}")
         
+        # If no connections were made, try with the second nearest road
         if connections_added == 0:
-            print(f"Warning: Could not connect sink node {idx} (ZIP {sink.get('ZIP_CODE', '')}) to any road")
+            print(f"Warning: Could not connect sink node {idx} (ZIP {sink.get('ZIP_CODE', '')}) to nearest road")
             
             # Try second-closest road as fallback
             if len(distances) > 1:
                 second_nearest = distances.nsmallest(2).index[1]
                 start_node_2 = f"r{second_nearest}_start"
+                end_node_2 = f"r{second_nearest}_end"
+                
+                # Calculate distances to both endpoints of second nearest road
+                start_dist_2 = float('inf')
+                end_dist_2 = float('inf')
                 
                 if start_node_2 in G.nodes:
-                    node_pos = G.nodes[start_node_2]['pos']
-                    dist = Point(node_pos).distance(sink_point)
+                    start_pos_2 = G.nodes[start_node_2]['pos']
+                    start_dist_2 = Point(start_pos_2).distance(sink_point)
+                
+                if end_node_2 in G.nodes:
+                    end_pos_2 = G.nodes[end_node_2]['pos']
+                    end_dist_2 = Point(end_pos_2).distance(sink_point)
+                
+                # Connect to the closest endpoint of second nearest road
+                if start_dist_2 <= end_dist_2 and start_node_2 in G.nodes:
                     G.add_edge(sink_id, start_node_2,
                               road_name="sink_connector",
                               road_type="S",
-                              weight=dist)
+                              weight=start_dist_2)
                     connections_added += 1
+                    print(f"Sink {idx} connected to start node of second nearest route {second_nearest}")
+                elif end_dist_2 < start_dist_2 and end_node_2 in G.nodes:
+                    G.add_edge(sink_id, end_node_2,
+                              road_name="sink_connector",
+                              road_type="S",
+                              weight=end_dist_2)
+                    connections_added += 1
+                    print(f"Sink {idx} connected to end node of second nearest route {second_nearest}")
         
         sink_connections += connections_added
     
