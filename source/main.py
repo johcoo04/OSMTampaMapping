@@ -5,9 +5,10 @@ import os
 import pickle
 from shapely.geometry import Point, LineString
 import time
+import json
+import pandas as pd
 
 def load_data(routes_path, intersections_path):
-    """Load GeoJSON data and standardize CRS"""
     routes_gdf = gpd.read_file(routes_path)
     intersections_gdf = gpd.read_file(intersections_path)
     
@@ -21,27 +22,20 @@ def load_data(routes_path, intersections_path):
     return routes_gdf, intersections_gdf
 
 def build_topological_graph(routes_gdf, intersections_gdf):
-    """Create a graph using true topological connections between roads"""
     print("Building graph with topological connections...")
     start_time = time.time()
     
     # Initialize new graph
     G = nx.Graph()
     
-    # First add all intersections as nodes
-    print("Adding intersection nodes...")
     for idx, row in intersections_gdf.iterrows():
         G.add_node(f"i{idx}", 
                    pos=(row.geometry.x, row.geometry.y), 
                    node_type='intersection',
                    geometry=row.geometry)
     
-    # Create a unified lines dataset from all routes
-    print("Processing routes for topological connections...")
-    # Add endpoints of each route as nodes
     endpoint_nodes = {}  # Maps (x,y) coordinates to node IDs
     
-    # Process each route and add its endpoints as nodes
     for idx, route in routes_gdf.iterrows():
         if route.geometry.geom_type != 'LineString':
             continue
@@ -114,19 +108,6 @@ def build_topological_graph(routes_gdf, intersections_gdf):
     return G
 
 def add_centroids_to_graph(G, centroids_gdf, routes_gdf):
-    """
-    Add centroids to the graph and connect them to the nearest roads
-    
-    Parameters:
-    -----------
-    G : networkx.Graph
-        The existing road network graph
-    centroids_gdf : GeoDataFrame
-        GeoDataFrame with centroid points (zip code centroids)
-    routes_gdf : GeoDataFrame
-        Original routes GeoDataFrame used for finding connections
-    """
-    print("Adding centroids to the graph...")
     start_time = time.time()
     
     centroid_connections = 0
@@ -158,11 +139,10 @@ def add_centroids_to_graph(G, centroids_gdf, routes_gdf):
         
         # Get route endpoints from G
         start_node = f"r{nearest_route_idx}_start"
-        end_node = f"r{nearest_route_idx}_end"
         
         # Connect to both endpoints of the road
         connections_added = 0
-        for node in [start_node, end_node]:
+        for node in [start_node]:
             if node in G.nodes:  # Ensure the node exists
                 node_pos = G.nodes[node]['pos']
                 dist = Point(node_pos).distance(centroid_point)
@@ -217,7 +197,6 @@ def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
         'H': 'red',      # Highway
         'M': 'green',    # Main road
         'P': 'purple',   # Primary/Peripheral road
-        'J': 'cyan',     # Junction connection
         'Z': 'magenta',  # Centroid connector
         'U': 'gray'      # Unknown type
     }
@@ -249,29 +228,6 @@ def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
                    alpha=alpha, label=f'Type {road_type}' if road_type not in edge_types_drawn else "")
             
             edge_types_drawn.add(road_type)
-    
-    # COMMENTED OUT: Regular node visualization code
-    """
-    # Separate nodes by type
-    intersection_nodes = [n for n, d in G.nodes(data=True) if d.get('node_type') == 'intersection']
-    route_endpoint_nodes = [n for n, d in G.nodes(data=True) if d.get('node_type') == 'route_endpoint']
-    
-    # Draw intersections in black
-    if intersection_nodes:
-        intersection_scatter = ax.scatter(
-            [pos[n][0] for n in intersection_nodes if n in pos],
-            [pos[n][1] for n in intersection_nodes if n in pos],
-            s=25, c='black', alpha=0.8, label='Intersections'
-        )
-    
-    # Draw route endpoints in light gray
-    if route_endpoint_nodes:
-        ax.scatter(
-            [pos[n][0] for n in route_endpoint_nodes if n in pos],
-            [pos[n][1] for n in route_endpoint_nodes if n in pos],
-            s=15, c='lightgray', alpha=0.6
-        )
-    """
     
     # Draw centroids (keep these visible)
     centroid_nodes = [n for n, d in G.nodes(data=True) if d.get('node_type') == 'centroid']
@@ -305,8 +261,7 @@ def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
 
 def load_centroids(centroids_path, target_crs=3857):
     """Load centroids from the specific zip code JSON format"""
-    import json
-    import pandas as pd
+
     
     print(f"Loading centroids from: {centroids_path}")
     
@@ -350,7 +305,7 @@ def main():
     data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
     routes_path = os.path.join(data_dir, 'Evacuation_Routes_Tampa.geojson')
     intersections_path = os.path.join(data_dir, 'Intersection.geojson')
-    centroids_path = os.path.join(data_dir, 'zip_code_centroids.json')  # Path to zip code centroids
+    centroids_path = os.path.join(data_dir, 'zip_code_centroids_plus.json')  # Path to zip code centroids
     output_path = os.path.join(os.path.dirname(data_dir), 'evacuation_network.png')
     pickle_path = os.path.join(data_dir, 'evacuation_graph.pickle')
     
