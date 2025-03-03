@@ -218,70 +218,6 @@ def build_topological_graph(routes_gdf, intersections_gdf):
     
     print(f"Added {connections} connections between routes and intersections")
     
-    # Connect endpoints of different routes when they're very close to each other
-    print("Connecting proximate route endpoints...")
-    endpoint_connections = 0
-    
-    # Convert endpoint_nodes keys to Points for easier distance calculation
-    endpoints = [(Point(coord), node_id) for coord, node_id in endpoint_nodes.items()]
-    
-    # Check each pair of endpoints
-    for i, (point1, node1) in enumerate(endpoints):
-        for point2, node2 in endpoints[i+1:]:
-            # If endpoints are very close and not already connected
-            if point1.distance(point2) < 0.001 and not G.has_edge(node1, node2):
-                # Connect the endpoints
-                G.add_edge(node1, node2,
-                          road_name="junction", 
-                          road_type="J", 
-                          weight=point1.distance(point2))
-                endpoint_connections += 1
-    
-    print(f"Added {endpoint_connections} connections between proximate route endpoints")
-    
-    # Find routes that cross each other and add connections
-    print("Finding route intersections...")
-    route_intersections = 0
-    
-    # Get all route edges
-    route_edges = [(u, v, data) for u, v, data in G.edges(data=True) 
-                   if 'geometry' in data and data.get('road_name') != 'connector']
-    
-    # Check each pair of routes
-    for i, (u1, v1, data1) in enumerate(route_edges):
-        geom1 = data1['geometry']
-        
-        for u2, v2, data2 in route_edges[i+1:]:
-            geom2 = data2['geometry']
-            
-            # If routes intersect and aren't already connected
-            if geom1.intersects(geom2) and not (
-                G.has_edge(u1, u2) or G.has_edge(u1, v2) or 
-                G.has_edge(v1, u2) or G.has_edge(v1, v2)):
-                
-                # Find intersection point
-                intersection = geom1.intersection(geom2)
-                
-                # Only add if it's a proper intersection
-                if not intersection.is_empty and intersection.geom_type == 'Point':
-                    # Find the closest nodes on each route
-                    dist1_u = Point(G.nodes[u1]['pos']).distance(intersection)
-                    dist1_v = Point(G.nodes[v1]['pos']).distance(intersection)
-                    dist2_u = Point(G.nodes[u2]['pos']).distance(intersection)
-                    dist2_v = Point(G.nodes[v2]['pos']).distance(intersection)
-                    
-                    # Connect the closest nodes from each route
-                    node1 = u1 if dist1_u < dist1_v else v1
-                    node2 = u2 if dist2_u < dist2_v else v2
-                    
-                    G.add_edge(node1, node2,
-                              road_name="intersection", 
-                              road_type="I", 
-                              weight=1.0)  # Short distance for intersection
-                    route_intersections += 1
-    
-    print(f"Added {route_intersections} connections at route intersections")
-    
     # Remove isolated nodes
     isolated = [node for node, degree in G.degree() if degree == 0]
     G.remove_nodes_from(isolated)
@@ -294,8 +230,96 @@ def build_topological_graph(routes_gdf, intersections_gdf):
     
     return G
 
+def add_centroids_to_graph(G, centroids_gdf, routes_gdf):
+    """
+    Add centroids to the graph and connect them to the nearest roads
+    
+    Parameters:
+    -----------
+    G : networkx.Graph
+        The existing road network graph
+    centroids_gdf : GeoDataFrame
+        GeoDataFrame with centroid points (zip code centroids)
+    routes_gdf : GeoDataFrame
+        Original routes GeoDataFrame used for finding connections
+    """
+    print("Adding centroids to the graph...")
+    start_time = time.time()
+    
+    centroid_connections = 0
+    
+    # First add all centroids as nodes
+    for idx, row in centroids_gdf.iterrows():
+        # Create a unique ID for each centroid
+        centroid_id = f"c{idx}"
+        
+        # Add the centroid as a node
+        G.add_node(centroid_id, 
+                 pos=(row.geometry.x, row.geometry.y),
+                 node_type='centroid',
+                 geometry=row.geometry,
+                 zip_code=row.get('ZIP_CODE', ''),     # Add zip code if available
+                 name=row.get('NAME', f'Centroid {idx}'))  # Add name if available
+    
+    print(f"Added {len(centroids_gdf)} centroids as nodes")
+    
+    # Connect each centroid to the nearest roads
+    for idx, centroid in centroids_gdf.iterrows():
+        centroid_id = f"c{idx}"
+        centroid_point = centroid.geometry
+        
+        # Find the nearest road segments (always get at least one)
+        distances = routes_gdf.geometry.apply(lambda g: g.distance(centroid_point))
+        nearest_route_idx = distances.idxmin()  # Get the closest road
+        nearest_route = routes_gdf.loc[nearest_route_idx]
+        
+        # Get route endpoints from G
+        start_node = f"r{nearest_route_idx}_start"
+        end_node = f"r{nearest_route_idx}_end"
+        
+        # Connect to both endpoints of the road
+        connections_added = 0
+        for node in [start_node, end_node]:
+            if node in G.nodes:  # Ensure the node exists
+                node_pos = G.nodes[node]['pos']
+                dist = Point(node_pos).distance(centroid_point)
+                
+                # Add edge with attributes
+                G.add_edge(centroid_id, node,
+                          road_name="centroid_connector",
+                          road_type="Z",  # Z for centroid connector
+                          weight=dist)
+                connections_added += 1
+        
+        if connections_added == 0:
+            print(f"Warning: Could not connect centroid {idx} (ZIP {centroid.get('ZIP_CODE', '')}) to any road")
+            
+            # Try second-closest road as fallback
+            if len(distances) > 1:
+                second_nearest = distances.nsmallest(2).index[1]
+                start_node_2 = f"r{second_nearest}_start"
+                end_node_2 = f"r{second_nearest}_end"
+                
+                for node in [start_node_2, end_node_2]:
+                    if node in G.nodes:
+                        node_pos = G.nodes[node]['pos']
+                        dist = Point(node_pos).distance(centroid_point)
+                        G.add_edge(centroid_id, node,
+                                  road_name="centroid_connector",
+                                  road_type="Z",
+                                  weight=dist)
+                        connections_added += 1
+        
+        centroid_connections += connections_added
+    
+    print(f"Added {centroid_connections} connections from centroids to roads")
+    
+    total_time = time.time() - start_time
+    print(f"Centroids added in {total_time:.4f} seconds")
+    return G
+
 def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
-    """Visualize the topologically connected graph without showing nodes"""
+    """Visualize the graph without showing nodes except centroids"""
     start_time = time.time()
     print("Starting visualization with matplotlib...")
     
@@ -304,14 +328,14 @@ def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
     # Extract node positions
     pos = nx.get_node_attributes(G, 'pos')
     
-    # Define colors for different road types
+    # Define colors for different road types (removed 'I')
     road_colors = {
         'C': 'blue',     # County road
         'H': 'red',      # Highway
         'M': 'green',    # Main road
         'P': 'purple',   # Primary/Peripheral road
-        'I': 'orange',   # Intersection connection
         'J': 'cyan',     # Junction connection
+        'Z': 'magenta',  # Centroid connector
         'U': 'gray'      # Unknown type
     }
     
@@ -324,14 +348,17 @@ def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
             x2, y2 = pos[v]
             
             road_type = data.get('road_type', 'U')
+            # Skip type 'I' edges if any still exist in the graph
+            if road_type == 'I':
+                continue
+                
             color = road_colors.get(road_type, 'gray')
             
             # Draw with appropriate width and style
             linewidth = 2.0
             alpha = 0.8
-            
-            # Make connectors thinner
-            if road_type in ['I', 'J']:
+
+            if road_type in ['Z']:
                 linewidth = 1.0
                 alpha = 0.6
             
@@ -340,7 +367,7 @@ def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
             
             edge_types_drawn.add(road_type)
     
-    # COMMENTED OUT: Node visualization code
+    # COMMENTED OUT: Regular node visualization code
     """
     # Separate nodes by type
     intersection_nodes = [n for n, d in G.nodes(data=True) if d.get('node_type') == 'intersection']
@@ -363,13 +390,22 @@ def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
         )
     """
     
-    # Add legend with just road types (no intersections since we're not showing them)
+    # Draw centroids (keep these visible)
+    centroid_nodes = [n for n, d in G.nodes(data=True) if d.get('node_type') == 'centroid']
+    if centroid_nodes:
+        centroid_scatter = ax.scatter(
+            [pos[n][0] for n in centroid_nodes if n in pos],
+            [pos[n][1] for n in centroid_nodes if n in pos],
+            s=150, c='yellow', alpha=1.0, marker='*', edgecolor='black', label='Zip Code Centroids'
+        )
+    
+    # Add legend with road types and centroids
     handles, labels = ax.get_legend_handles_labels()
     unique_labels = dict(zip(labels, handles))
     ax.legend(unique_labels.values(), unique_labels.keys(), loc='upper right')
     
     # Set title and labels
-    ax.set_title('Tampa Evacuation Network Graph (Topological Connections)')
+    ax.set_title('Tampa Evacuation Network Graph with Zip Code Centroids')
     
     # Remove axes
     ax.set_axis_off()
@@ -384,11 +420,54 @@ def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
     total_time = time.time() - start_time
     print(f"Visualization completed in {total_time:.4f} seconds")
 
+def load_centroids(centroids_path, target_crs=3857):
+    """Load centroids from the specific zip code JSON format"""
+    import json
+    import pandas as pd
+    
+    print(f"Loading centroids from: {centroids_path}")
+    
+    # Check if file exists
+    if not os.path.exists(centroids_path):
+        print(f"ERROR: File not found at {centroids_path}")
+        raise FileNotFoundError(f"Centroids file not found: {centroids_path}")
+    
+    try:
+        # Read the JSON file
+        with open(centroids_path, 'r') as f:
+            data = json.load(f)
+        
+        # Create centroids list from the ZIP code dictionary format
+        centroids = []
+        for zip_code, coords in data.items():
+            if "centroid_x" in coords and "centroid_y" in coords:
+                # Create a Point for each zip code
+                point = Point(coords["centroid_x"], coords["centroid_y"])
+                centroids.append({
+                    "geometry": point,
+                    "ZIP_CODE": zip_code,
+                    "NAME": f"ZIP {zip_code}"
+                })
+        
+        # Create GeoDataFrame from centroids
+        if centroids:
+            centroids_gdf = gpd.GeoDataFrame(centroids, crs=f"EPSG:{target_crs}")
+            print(f"Successfully loaded {len(centroids_gdf)} zip code centroids")
+            return centroids_gdf
+        else:
+            print("No valid centroids found in the JSON file")
+            raise ValueError("No valid centroids found")
+            
+    except Exception as e:
+        print(f"Error loading centroids: {str(e)}")
+        raise
+
 def main():
     # Define data paths
     data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
     routes_path = os.path.join(data_dir, 'Evacuation_Routes_Tampa.geojson')
     intersections_path = os.path.join(data_dir, 'Intersection.geojson')
+    centroids_path = os.path.join(data_dir, 'zip_code_centroids.json')  # Path to zip code centroids
     output_path = os.path.join(os.path.dirname(data_dir), 'evacuation_network.png')
     pickle_path = os.path.join(data_dir, 'evacuation_graph.pickle')
     
@@ -399,9 +478,18 @@ def main():
     loading_time = time.time() - start_time
     print(f"Data loading completed in {loading_time:.4f} seconds")
     
+    # Load zip code centroids
+    print("Loading zip code centroids...")
+    centroids_gdf = load_centroids(centroids_path)
+    print(f"Loaded {len(centroids_gdf)} zip code centroids")
+    
     print("Creating graph...")
     # Use build_topological_graph instead of create_graph
     G = build_topological_graph(routes_gdf, intersections_gdf)
+    
+    # Add centroids to the graph
+    print("Adding zip code centroids to graph...")
+    G = add_centroids_to_graph(G, centroids_gdf, routes_gdf)
     
     # Save graph to pickle file
     print(f"Saving graph to pickle file: {pickle_path}")
