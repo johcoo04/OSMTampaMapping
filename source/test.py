@@ -137,30 +137,236 @@ def create_graph(routes_gdf, intersections_gdf, snap_distance=50):
 
     return G
 
-def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
-    """Visualize the graph with matplotlib using NetworkX drawing functions"""
+def build_topological_graph(routes_gdf, intersections_gdf):
+    """Create a graph using true topological connections between roads"""
+    print("Building graph with topological connections...")
     start_time = time.time()
-    print("Starting visualization...")
+    
+    # Initialize new graph
+    G = nx.Graph()
+    
+    # First add all intersections as nodes
+    print("Adding intersection nodes...")
+    for idx, row in intersections_gdf.iterrows():
+        G.add_node(f"i{idx}", 
+                   pos=(row.geometry.x, row.geometry.y), 
+                   node_type='intersection',
+                   geometry=row.geometry)
+    
+    # Create a unified lines dataset from all routes
+    print("Processing routes for topological connections...")
+    # Add endpoints of each route as nodes
+    endpoint_nodes = {}  # Maps (x,y) coordinates to node IDs
+    
+    # Process each route and add its endpoints as nodes
+    for idx, route in routes_gdf.iterrows():
+        if route.geometry.geom_type != 'LineString':
+            continue
+        
+        road_name = route.get('STREET', 'unnamed')
+        road_type = route.get('TYPE', 'U')
+        coords = list(route.geometry.coords)
+        
+        # Get start and end points
+        start_point = coords[0]
+        end_point = coords[-1]
+        
+        # Create or reuse nodes for the endpoints
+        start_node = f"r{idx}_start"
+        end_node = f"r{idx}_end"
+        
+        # Add nodes if they don't exist
+        G.add_node(start_node, pos=start_point, node_type='route_endpoint')
+        G.add_node(end_node, pos=end_point, node_type='route_endpoint')
+        
+        # Add the route as an edge
+        G.add_edge(start_node, end_node, 
+                  road_name=road_name,
+                  road_type=road_type, 
+                  weight=route.geometry.length,
+                  geometry=route.geometry)
+        
+        # Store endpoints for connection finding
+        endpoint_nodes[start_point] = start_node
+        endpoint_nodes[end_point] = end_node
+    
+    print(f"Added {len(routes_gdf)} route edges to the graph")
+    
+    # Connect route endpoints to nearby intersections
+    print("Connecting routes to intersections...")
+    connections = 0
+    
+    # For each route endpoint, find if it's near an intersection
+    for coord, node_id in endpoint_nodes.items():
+        point = Point(coord)
+        
+        # Find intersections within a small distance (adjust tolerance as needed)
+        nearby = intersections_gdf[intersections_gdf.geometry.distance(point) < 0.001]
+        
+        if not nearby.empty:
+            # Connect to the closest intersection
+            closest_idx = nearby.distance(point).idxmin()
+            intersection_node = f"i{closest_idx}"
+            
+            # Only add connection if it doesn't exist
+            if not G.has_edge(node_id, intersection_node):
+                G.add_edge(node_id, intersection_node, 
+                          road_name="connector", 
+                          road_type="C", 
+                          weight=point.distance(nearby.loc[closest_idx].geometry))
+                connections += 1
+    
+    print(f"Added {connections} connections between routes and intersections")
+    
+    # Connect endpoints of different routes when they're very close to each other
+    print("Connecting proximate route endpoints...")
+    endpoint_connections = 0
+    
+    # Convert endpoint_nodes keys to Points for easier distance calculation
+    endpoints = [(Point(coord), node_id) for coord, node_id in endpoint_nodes.items()]
+    
+    # Check each pair of endpoints
+    for i, (point1, node1) in enumerate(endpoints):
+        for point2, node2 in endpoints[i+1:]:
+            # If endpoints are very close and not already connected
+            if point1.distance(point2) < 0.001 and not G.has_edge(node1, node2):
+                # Connect the endpoints
+                G.add_edge(node1, node2,
+                          road_name="junction", 
+                          road_type="J", 
+                          weight=point1.distance(point2))
+                endpoint_connections += 1
+    
+    print(f"Added {endpoint_connections} connections between proximate route endpoints")
+    
+    # Find routes that cross each other and add connections
+    print("Finding route intersections...")
+    route_intersections = 0
+    
+    # Get all route edges
+    route_edges = [(u, v, data) for u, v, data in G.edges(data=True) 
+                   if 'geometry' in data and data.get('road_name') != 'connector']
+    
+    # Check each pair of routes
+    for i, (u1, v1, data1) in enumerate(route_edges):
+        geom1 = data1['geometry']
+        
+        for u2, v2, data2 in route_edges[i+1:]:
+            geom2 = data2['geometry']
+            
+            # If routes intersect and aren't already connected
+            if geom1.intersects(geom2) and not (
+                G.has_edge(u1, u2) or G.has_edge(u1, v2) or 
+                G.has_edge(v1, u2) or G.has_edge(v1, v2)):
+                
+                # Find intersection point
+                intersection = geom1.intersection(geom2)
+                
+                # Only add if it's a proper intersection
+                if not intersection.is_empty and intersection.geom_type == 'Point':
+                    # Find the closest nodes on each route
+                    dist1_u = Point(G.nodes[u1]['pos']).distance(intersection)
+                    dist1_v = Point(G.nodes[v1]['pos']).distance(intersection)
+                    dist2_u = Point(G.nodes[u2]['pos']).distance(intersection)
+                    dist2_v = Point(G.nodes[v2]['pos']).distance(intersection)
+                    
+                    # Connect the closest nodes from each route
+                    node1 = u1 if dist1_u < dist1_v else v1
+                    node2 = u2 if dist2_u < dist2_v else v2
+                    
+                    G.add_edge(node1, node2,
+                              road_name="intersection", 
+                              road_type="I", 
+                              weight=1.0)  # Short distance for intersection
+                    route_intersections += 1
+    
+    print(f"Added {route_intersections} connections at route intersections")
+    
+    # Remove isolated nodes
+    isolated = [node for node, degree in G.degree() if degree == 0]
+    G.remove_nodes_from(isolated)
+    print(f"Removed {len(isolated)} isolated nodes")
+    
+    # Print final graph statistics
+    total_time = time.time() - start_time
+    print(f"\nTotal graph creation time: {total_time:.4f} seconds")
+    print(f"Final graph has {G.number_of_nodes()} nodes and {G.number_of_edges()} edges")
+    
+    return G
+
+def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
+    """Visualize the topologically connected graph"""
+    start_time = time.time()
+    print("Starting visualization with matplotlib...")
     
     fig, ax = plt.subplots(figsize=(45, 45))
     
-    # Extract node positions from graph attributes
+    # Extract node positions
     pos = nx.get_node_attributes(G, 'pos')
     
-    # Draw the graph edges
-    nx.draw_networkx_edges(G, pos, ax=ax, edge_color='blue', width=1.0, alpha=0.7)
-    print(nx)
+    # Define colors for different road types
+    road_colors = {
+        'C': 'blue',     # County road
+        'H': 'red',      # Highway
+        'M': 'green',    # Main road
+        'P': 'purple',   # Primary/Peripheral road
+        'I': 'orange',   # Intersection connection
+        'J': 'cyan',     # Junction connection
+        'U': 'gray'      # Unknown type
+    }
     
-    # Draw the graph nodes
-    nx.draw_networkx_nodes(G, pos, ax=ax, node_size=15, node_color='black', alpha=0.8)
+    # Draw edges with appropriate colors
+    edge_types_drawn = set()
     
-    # Optionally draw labels (might be cluttered with many nodes)
-    # nx.draw_networkx_labels(G, pos, font_size=8, alpha=0.7)
+    for u, v, data in G.edges(data=True):
+        if u in pos and v in pos:
+            x1, y1 = pos[u]
+            x2, y2 = pos[v]
+            
+            road_type = data.get('road_type', 'U')
+            color = road_colors.get(road_type, 'gray')
+            
+            # Draw with appropriate width and style
+            linewidth = 2.0
+            alpha = 0.8
+            
+            # Make connectors thinner
+            if road_type in ['I', 'J']:
+                linewidth = 1.0
+                alpha = 0.6
+            
+            ax.plot([x1, x2], [y1, y2], color=color, linewidth=linewidth, 
+                   alpha=alpha, label=f'Type {road_type}' if road_type not in edge_types_drawn else "")
+            
+            edge_types_drawn.add(road_type)
+    
+    # Separate nodes by type
+    intersection_nodes = [n for n, d in G.nodes(data=True) if d.get('node_type') == 'intersection']
+    route_endpoint_nodes = [n for n, d in G.nodes(data=True) if d.get('node_type') == 'route_endpoint']
+    
+    # Draw intersections in black
+    if intersection_nodes:
+        intersection_scatter = ax.scatter(
+            [pos[n][0] for n in intersection_nodes if n in pos],
+            [pos[n][1] for n in intersection_nodes if n in pos],
+            s=25, c='black', alpha=0.8, label='Intersections'
+        )
+    
+    # Draw route endpoints in light gray
+    if route_endpoint_nodes:
+        ax.scatter(
+            [pos[n][0] for n in route_endpoint_nodes if n in pos],
+            [pos[n][1] for n in route_endpoint_nodes if n in pos],
+            s=15, c='lightgray', alpha=0.8, label='Route Endpoints'
+        )
+    
+    # Add legend
+    handles, labels = ax.get_legend_handles_labels()
+    unique_labels = dict(zip(labels, handles))
+    ax.legend(unique_labels.values(), unique_labels.keys(), loc='upper right')
     
     # Set title and labels
-    ax.set_title('Tampa Evacuation Network Graph')
-    ax.set_xlabel('X Coordinate')
-    ax.set_ylabel('Y Coordinate')
+    ax.set_title('Tampa Evacuation Network Graph (Topological Connections)')
     
     # Remove axes
     ax.set_axis_off()
@@ -169,8 +375,6 @@ def visualize_graph(G, routes_gdf, intersections_gdf, output_path=None):
     if output_path:
         plt.savefig(output_path, bbox_inches='tight', dpi=300)
         print(f"Visualization saved to {output_path}")
-    
-    plt.close()
     
     total_time = time.time() - start_time
     print(f"Visualization completed in {total_time:.4f} seconds")
@@ -185,32 +389,20 @@ def main():
     
     start_time = time.time()
     
-    # Check if pickle file exists
-    if os.path.exists(pickle_path):
-        print(f"Loading graph from pickle file: {pickle_path}")
-        with open(pickle_path, 'rb') as f:
-            G = pickle.load(f)
-        print(f"Loaded graph with {G.number_of_nodes()} nodes and {G.number_of_edges()} edges")
-        loading_time = time.time() - start_time
-        print(f"Graph loading completed in {loading_time:.4f} seconds")
-        
-        # Load the geodataframes for visualization
-        print("Loading data for visualization...")
-        routes_gdf, intersections_gdf = load_data(routes_path, intersections_path)
-    else:
-        print("Loading data...")
-        routes_gdf, intersections_gdf = load_data(routes_path, intersections_path)
-        loading_time = time.time() - start_time
-        print(f"Data loading completed in {loading_time:.4f} seconds")
-        
-        print("Creating graph...")
-        G = create_graph(routes_gdf, intersections_gdf)
-        
-        # Save graph to pickle file
-        print(f"Saving graph to pickle file: {pickle_path}")
-        with open(pickle_path, 'wb') as f:
-            pickle.dump(G, f)
-        print("Graph saved successfully")
+    print("Loading data...")
+    routes_gdf, intersections_gdf = load_data(routes_path, intersections_path)
+    loading_time = time.time() - start_time
+    print(f"Data loading completed in {loading_time:.4f} seconds")
+    
+    print("Creating graph...")
+    # Use build_topological_graph instead of create_graph
+    G = build_topological_graph(routes_gdf, intersections_gdf)
+    
+    # Save graph to pickle file
+    print(f"Saving graph to pickle file: {pickle_path}")
+    with open(pickle_path, 'wb') as f:
+        pickle.dump(G, f)
+    print("Graph saved successfully")
     
     print("Visualizing graph...")
     visualize_graph(G, routes_gdf, intersections_gdf, output_path)
