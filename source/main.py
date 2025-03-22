@@ -906,6 +906,103 @@ def build_graph_from_scratch(routes_path, intersections_path, centroids_path, si
     
     return G, routes_gdf, intersections_gdf
 
+def visualize_with_selected_road_tips(G, selected_tips, routes_gdf, intersections_gdf, output_path=None):
+    """Visualize the graph with only the selected road tips highlighted"""
+    start_time = time.time()
+    print("Starting visualization with selected terminal nodes...")
+    
+    fig, ax = plt.subplots(figsize=(45, 45))
+    
+    # Extract node positions
+    pos = nx.get_node_attributes(G, 'pos')
+    
+    # Define colors for different road types
+    road_colors = {
+        'C': 'blue',     # County road
+        'H': 'red',      # Highway
+        'M': 'green',    # Main road
+        'P': 'purple',   # Primary/Peripheral road
+        'Z': 'magenta',  # Centroid connector
+        'S': 'orange',   # Sink connector
+        'U': 'gray'      # Unknown type
+    }
+    
+    # Draw edges with appropriate colors
+    edge_types_drawn = set()
+    
+    for u, v, data in G.edges(data=True):
+        if u in pos and v in pos:
+            x1, y1 = pos[u]
+            x2, y2 = pos[v]
+            
+            road_type = data.get('road_type', 'U')
+            # Skip certain road types if needed
+            if road_type in ['I', 'J', 'E']:  # Skip evacuation connectors
+                continue
+                
+            color = road_colors.get(road_type, 'gray')
+            
+            # Draw with appropriate width and style
+            linewidth = 2.0
+            alpha = 0.8
+            
+            # Make connectors thinner
+            if road_type in ['Z', 'S']:
+                linewidth = 1.0
+                alpha = 0.6
+            
+            ax.plot([x1, x2], [y1, y2], color=color, linewidth=linewidth, 
+                   alpha=alpha, label=f'Type {road_type}' if road_type not in edge_types_drawn else "")
+            
+            edge_types_drawn.add(road_type)
+    
+    # Draw centroids as dots
+    centroid_nodes = [n for n, d in G.nodes(data=True) if d.get('node_type') == 'centroid']
+    if centroid_nodes:
+        centroid_scatter = ax.scatter(
+            [pos[n][0] for n in centroid_nodes if n in pos],
+            [pos[n][1] for n in centroid_nodes if n in pos],
+            s=100, c='blue', alpha=0.8, marker='o', edgecolor='black', label='Population Centers'
+        )
+    
+    # Draw sink nodes as stars
+    sink_nodes = [n for n, d in G.nodes(data=True) if d.get('node_type') == 'sink']
+    if sink_nodes:
+        sink_scatter = ax.scatter(
+            [pos[n][0] for n in sink_nodes if n in pos],
+            [pos[n][1] for n in sink_nodes if n in pos],
+            s=200, c='yellow', alpha=1.0, marker='*', edgecolor='black', label='Evacuation Points'
+        )
+    
+    # Highlight selected road tips
+    selected_positions = [pos[n] for n in selected_tips if n in pos]
+    if selected_positions:
+        x_coords = [p[0] for p in selected_positions]
+        y_coords = [p[1] for p in selected_positions]
+        tips_scatter = ax.scatter(
+            x_coords, y_coords, 
+            s=200, c='red', marker='D', edgecolor='black', linewidth=2, label='Selected Terminal Nodes'
+        )
+    
+    # Add legend with road types and node types
+    handles, labels = ax.get_legend_handles_labels()
+    unique_labels = dict(zip(labels, handles))
+    ax.legend(unique_labels.values(), unique_labels.keys(), loc='upper right')
+    
+    # Set title and labels
+    ax.set_title('Tampa Evacuation Network with Selected Terminal Nodes')
+    
+    # Remove axes
+    ax.set_axis_off()
+    
+    # Save if output path provided
+    if output_path:
+        plt.savefig(output_path, bbox_inches='tight', dpi=300)
+        print(f"Visualization saved to {output_path}")
+    
+    total_time = time.time() - start_time
+    print(f"Visualization with selected terminal nodes completed in {total_time:.4f} seconds")
+
 def main():
     # Define data paths
     data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
@@ -919,6 +1016,7 @@ def main():
     pickle_path = os.path.join(data_dir, 'evacuation_graph.pickle')
     road_tips_path = os.path.join(data_dir, 'road_tips.json')
     selected_tips_path = os.path.join(data_dir, 'selected_road_tips.json')
+    selected_tips_output_path = os.path.join(os.path.dirname(data_dir), 'evacuation_network_with_sinks.png')
     
     start_time = time.time()
     
@@ -935,10 +1033,37 @@ def main():
             intersections_gdf = gpd.read_file(intersections_path).to_crs(epsg=3857)
             
             print("Using cached graph from pickle file")
+            
+            # Load existing road tips if available
+            if os.path.exists(road_tips_path):
+                print(f"Loading existing road tips from {road_tips_path}...")
+                with open(road_tips_path, 'r') as f:
+                    road_tips_data = json.load(f)
+                    road_tips = list(road_tips_data.keys())
+                print(f"Loaded {len(road_tips)} road tips successfully")
+            else:
+                # Identify all road tips if not already saved
+                road_tips = identify_all_road_tips(G)
+                save_road_tips_to_file(G, road_tips, road_tips_path)
+            
         except Exception as e:
             print(f"Error loading pickled graph: {e}")
             print("Building new graph instead...")
             G, routes_gdf, intersections_gdf = build_graph_from_scratch(routes_path, intersections_path, centroids_path, sink_nodes_path)
+            
+            # Identify all road tips
+            road_tips = identify_all_road_tips(G)
+            
+            # Save road tips to a file
+            save_road_tips_to_file(G, road_tips, road_tips_path)
+            
+            # Create visualization with labeled road tips
+            print("Visualizing graph with labeled road tips...")
+            visualize_with_labeled_road_tips(G, road_tips, routes_gdf, intersections_gdf, labeled_tips_output_path)
+            
+            # Visualization with road tips
+            print("Visualizing graph with road tips...")
+            visualize_with_road_tips(G, road_tips, routes_gdf, intersections_gdf, road_tips_output_path)
     else:
         print("No pickled graph found. Building from scratch...")
         G, routes_gdf, intersections_gdf = build_graph_from_scratch(routes_path, intersections_path, centroids_path, sink_nodes_path)
@@ -948,20 +1073,20 @@ def main():
         with open(pickle_path, 'wb') as f:
             pickle.dump(G, f)
         print("Graph saved successfully")
-    
-    # Identify all road tips
-    road_tips = identify_all_road_tips(G)
-    
-    # Save road tips to a file
-    save_road_tips_to_file(G, road_tips, road_tips_path)
-    
-    # Create visualization with labeled road tips
-    print("Visualizing graph with labeled road tips...")
-    visualize_with_labeled_road_tips(G, road_tips, routes_gdf, intersections_gdf, labeled_tips_output_path)
-    
-    # Visualization with road tips
-    print("Visualizing graph with road tips...")
-    visualize_with_road_tips(G, road_tips, routes_gdf, intersections_gdf, road_tips_output_path)
+        
+        # Identify all road tips
+        road_tips = identify_all_road_tips(G)
+        
+        # Save road tips to a file
+        save_road_tips_to_file(G, road_tips, road_tips_path)
+        
+        # Create visualization with labeled road tips
+        print("Visualizing graph with labeled road tips...")
+        visualize_with_labeled_road_tips(G, road_tips, routes_gdf, intersections_gdf, labeled_tips_output_path)
+        
+        # Visualization with road tips
+        print("Visualizing graph with road tips...")
+        visualize_with_road_tips(G, road_tips, routes_gdf, intersections_gdf, road_tips_output_path)
     
     # Standard visualization
     print("Visualizing graph...")
@@ -987,6 +1112,10 @@ def main():
     # Save the selected road tips
     save_selected_road_tips(G, selected_tip_ids, selected_tips_path)
     print(f"Saved {len(selected_tip_ids)} selected road tips to {selected_tips_path}")
+    
+    # Visualize the selected road tips (terminal nodes)
+    print("Visualizing graph with selected terminal nodes...")
+    visualize_with_selected_road_tips(G, selected_tip_ids, routes_gdf, intersections_gdf, selected_tips_output_path)
     
     total_time = time.time() - start_time
     print(f"Total execution time: {total_time:.4f} seconds")
