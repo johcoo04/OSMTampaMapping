@@ -1,0 +1,974 @@
+Evacuation Path Summary
+======================
+
+Centroid: 33527
+Closest Sink: 33811
+Distance: 28.92 km (28915.90 m)
+Path Nodes: 164
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 116 segments
+  M: 41 segments
+  C: 4 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33815
+2nd Closest Distance: 30.84 km (30843.66 m)
+
+3rd Closest Sink: 33540
+3rd Closest Distance: 40.48 km (40478.21 m)
+
+----------------------------------------
+
+Centroid: 33604
+Closest Sink: 33544
+Distance: 32.56 km (32557.85 m)
+Path Nodes: 139
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 70 segments
+  H: 66 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34638
+2nd Closest Distance: 41.36 km (41364.45 m)
+
+3rd Closest Sink: 33541
+3rd Closest Distance: 46.24 km (46236.74 m)
+
+----------------------------------------
+
+Centroid: 33621
+Closest Sink: 34638
+Distance: 57.01 km (57011.67 m)
+Path Nodes: 338
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 204 segments
+  P: 103 segments
+  M: 16 segments
+  H: 12 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33544
+2nd Closest Distance: 59.62 km (59615.94 m)
+
+3rd Closest Sink: 34655
+3rd Closest Distance: 63.17 km (63169.85 m)
+
+----------------------------------------
+
+Centroid: 33563
+Closest Sink: 33811
+Distance: 15.73 km (15725.89 m)
+Path Nodes: 71
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 48 segments
+  M: 20 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33815
+2nd Closest Distance: 17.19 km (17186.61 m)
+
+3rd Closest Sink: 33540
+3rd Closest Distance: 26.82 km (26821.17 m)
+
+----------------------------------------
+
+Centroid: 33610
+Closest Sink: 33544
+Distance: 36.29 km (36290.32 m)
+Path Nodes: 217
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 123 segments
+  M: 2 segments
+  R: 4 segments
+  P: 24 segments
+  H: 61 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33541
+2nd Closest Distance: 38.46 km (38461.61 m)
+
+3rd Closest Sink: 33815
+3rd Closest Distance: 43.63 km (43628.26 m)
+
+----------------------------------------
+
+Centroid: 33606
+Closest Sink: 33544
+Distance: 47.41 km (47408.50 m)
+Path Nodes: 249
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  H: 106 segments
+  CONNECTOR: 134 segments
+  P: 1 segments
+  M: 5 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33541
+2nd Closest Distance: 52.26 km (52260.16 m)
+
+3rd Closest Sink: 34638
+3rd Closest Distance: 53.48 km (53479.52 m)
+
+----------------------------------------
+
+Centroid: 33609
+Closest Sink: 34638
+Distance: 44.69 km (44688.89 m)
+Path Nodes: 289
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 5 segments
+  CONNECTOR: 189 segments
+  H: 90 segments
+  R: 2 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33544
+2nd Closest Distance: 47.86 km (47861.93 m)
+
+3rd Closest Sink: 34655
+3rd Closest Distance: 50.76 km (50761.19 m)
+
+----------------------------------------
+
+Centroid: 33620
+Closest Sink: 33544
+Distance: 29.02 km (29016.63 m)
+Path Nodes: 155
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  M: 16 segments
+  CONNECTOR: 115 segments
+  P: 5 segments
+  H: 16 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33541
+2nd Closest Distance: 39.07 km (39065.02 m)
+
+3rd Closest Sink: 34638
+3rd Closest Distance: 40.47 km (40466.99 m)
+
+----------------------------------------
+
+Centroid: 33569
+Closest Sink: 34221
+Distance: 50.94 km (50937.99 m)
+Path Nodes: 255
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 123 segments
+  CONNECTOR: 116 segments
+  M: 13 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33544
+2nd Closest Distance: 57.71 km (57707.37 m)
+
+3rd Closest Sink: 33541
+3rd Closest Distance: 59.88 km (59878.67 m)
+
+----------------------------------------
+
+Centroid: 33584
+Closest Sink: 33811
+Distance: 33.80 km (33798.44 m)
+Path Nodes: 226
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 145 segments
+  M: 78 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33815
+2nd Closest Distance: 35.26 km (35259.16 m)
+
+3rd Closest Sink: 33544
+3rd Closest Distance: 38.62 km (38621.77 m)
+
+----------------------------------------
+
+Centroid: 33613
+Closest Sink: 33544
+Distance: 24.02 km (24015.15 m)
+Path Nodes: 94
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  M: 5 segments
+  CONNECTOR: 43 segments
+  H: 43 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34638
+2nd Closest Distance: 36.68 km (36675.84 m)
+
+3rd Closest Sink: 34655
+3rd Closest Distance: 42.83 km (42834.03 m)
+
+----------------------------------------
+
+Centroid: 33625
+Closest Sink: 34638
+Distance: 25.18 km (25179.33 m)
+Path Nodes: 126
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 89 segments
+  H: 34 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34655
+2nd Closest Distance: 31.25 km (31251.64 m)
+
+3rd Closest Sink: 33544
+3rd Closest Distance: 52.81 km (52805.75 m)
+
+----------------------------------------
+
+Centroid: 33614
+Closest Sink: 34638
+Distance: 36.40 km (36398.31 m)
+Path Nodes: 209
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 57 segments
+  CONNECTOR: 121 segments
+  M: 16 segments
+  H: 12 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33544
+2nd Closest Distance: 39.00 km (39002.59 m)
+
+3rd Closest Sink: 34655
+3rd Closest Distance: 42.56 km (42556.50 m)
+
+----------------------------------------
+
+Centroid: 33592
+Closest Sink: 33541
+Distance: 20.67 km (20667.17 m)
+Path Nodes: 92
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 55 segments
+  CONNECTOR: 34 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33544
+2nd Closest Distance: 39.81 km (39814.64 m)
+
+3rd Closest Sink: 33815
+3rd Closest Distance: 56.84 km (56836.15 m)
+
+----------------------------------------
+
+Centroid: 33619
+Closest Sink: 33544
+Distance: 47.83 km (47830.14 m)
+Path Nodes: 299
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 155 segments
+  M: 13 segments
+  P: 67 segments
+  H: 61 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33541
+2nd Closest Distance: 50.00 km (50001.43 m)
+
+3rd Closest Sink: 33811
+3rd Closest Distance: 52.49 km (52490.67 m)
+
+----------------------------------------
+
+Centroid: 33624
+Closest Sink: 34638
+Distance: 29.41 km (29414.44 m)
+Path Nodes: 142
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 23 segments
+  CONNECTOR: 87 segments
+  M: 17 segments
+  H: 12 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33544
+2nd Closest Distance: 35.13 km (35133.02 m)
+
+3rd Closest Sink: 34655
+3rd Closest Distance: 35.57 km (35572.62 m)
+
+----------------------------------------
+
+Centroid: 33603
+Closest Sink: 33544
+Distance: 37.65 km (37654.95 m)
+Path Nodes: 170
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  H: 84 segments
+  CONNECTOR: 83 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34638
+2nd Closest Distance: 45.97 km (45968.59 m)
+
+3rd Closest Sink: 33541
+3rd Closest Distance: 49.14 km (49143.82 m)
+
+----------------------------------------
+
+Centroid: 33567
+Closest Sink: 33860
+Distance: 24.73 km (24734.44 m)
+Path Nodes: 76
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 37 segments
+  CONNECTOR: 36 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33811
+2nd Closest Distance: 27.20 km (27201.99 m)
+
+3rd Closest Sink: 33815
+3rd Closest Distance: 29.24 km (29243.22 m)
+
+----------------------------------------
+
+Centroid: 33573
+Closest Sink: 34221
+Distance: 31.37 km (31372.38 m)
+Path Nodes: 141
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 62 segments
+  P: 76 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34219
+2nd Closest Distance: 48.11 km (48110.47 m)
+
+3rd Closest Sink: 33834
+3rd Closest Distance: 50.82 km (50823.53 m)
+
+----------------------------------------
+
+Centroid: 33617
+Closest Sink: 33544
+Distance: 32.00 km (31998.61 m)
+Path Nodes: 170
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 93 segments
+  P: 17 segments
+  H: 57 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33541
+2nd Closest Distance: 35.91 km (35911.11 m)
+
+3rd Closest Sink: 34638
+3rd Closest Distance: 44.93 km (44930.51 m)
+
+----------------------------------------
+
+Centroid: 33566
+Closest Sink: 33811
+Distance: 18.48 km (18476.73 m)
+Path Nodes: 89
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 61 segments
+  P: 3 segments
+  C: 3 segments
+  M: 19 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33815
+2nd Closest Distance: 20.52 km (20517.96 m)
+
+3rd Closest Sink: 33860
+3rd Closest Distance: 30.08 km (30083.62 m)
+
+----------------------------------------
+
+Centroid: 33556
+Closest Sink: 34655
+Distance: 14.61 km (14605.22 m)
+Path Nodes: 54
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 41 segments
+  M: 10 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34638
+2nd Closest Distance: 20.56 km (20556.16 m)
+
+3rd Closest Sink: 33544
+3rd Closest Distance: 52.63 km (52626.31 m)
+
+----------------------------------------
+
+Centroid: 33579
+Closest Sink: 34219
+Distance: 48.88 km (48878.95 m)
+Path Nodes: 156
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 136 segments
+  M: 7 segments
+  P: 10 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34221
+2nd Closest Distance: 48.92 km (48917.00 m)
+
+3rd Closest Sink: 33834
+3rd Closest Distance: 51.59 km (51592.01 m)
+
+----------------------------------------
+
+Centroid: 33629
+Closest Sink: 34638
+Distance: 47.52 km (47524.03 m)
+Path Nodes: 285
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 85 segments
+  CONNECTOR: 169 segments
+  M: 16 segments
+  H: 12 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33544
+2nd Closest Distance: 50.13 km (50128.30 m)
+
+3rd Closest Sink: 34655
+3rd Closest Distance: 53.68 km (53682.21 m)
+
+----------------------------------------
+
+Centroid: 33558
+Closest Sink: 34638
+Distance: 14.82 km (14819.57 m)
+Path Nodes: 42
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 31 segments
+  M: 4 segments
+  H: 4 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34655
+2nd Closest Distance: 25.04 km (25036.75 m)
+
+3rd Closest Sink: 33544
+3rd Closest Distance: 46.52 km (46519.65 m)
+
+----------------------------------------
+
+Centroid: 33634
+Closest Sink: 34638
+Distance: 33.83 km (33830.10 m)
+Path Nodes: 203
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  H: 60 segments
+  CONNECTOR: 140 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34655
+2nd Closest Distance: 39.90 km (39902.40 m)
+
+3rd Closest Sink: 33544
+3rd Closest Distance: 46.56 km (46563.14 m)
+
+----------------------------------------
+
+Centroid: 33572
+Closest Sink: 34221
+Distance: 30.09 km (30088.43 m)
+Path Nodes: 136
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 79 segments
+  CONNECTOR: 54 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34219
+2nd Closest Distance: 63.20 km (63195.85 m)
+
+3rd Closest Sink: 33834
+3rd Closest Distance: 65.91 km (65908.91 m)
+
+----------------------------------------
+
+Centroid: 33612
+Closest Sink: 33544
+Distance: 28.24 km (28241.49 m)
+Path Nodes: 130
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  M: 17 segments
+  CONNECTOR: 67 segments
+  H: 43 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34638
+2nd Closest Distance: 37.46 km (37460.20 m)
+
+3rd Closest Sink: 33541
+3rd Closest Distance: 41.59 km (41592.72 m)
+
+----------------------------------------
+
+Centroid: 33607
+Closest Sink: 34638
+Distance: 38.68 km (38680.40 m)
+Path Nodes: 242
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  H: 75 segments
+  CONNECTOR: 164 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34655
+2nd Closest Distance: 44.75 km (44752.71 m)
+
+3rd Closest Sink: 33544
+3rd Closest Distance: 47.98 km (47977.58 m)
+
+----------------------------------------
+
+Centroid: 33534
+Closest Sink: 34221
+Distance: 38.59 km (38589.19 m)
+Path Nodes: 190
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 72 segments
+  P: 115 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33544
+2nd Closest Distance: 59.50 km (59501.31 m)
+
+3rd Closest Sink: 33541
+3rd Closest Distance: 61.67 km (61672.61 m)
+
+----------------------------------------
+
+Centroid: 33626
+Closest Sink: 34638
+Distance: 31.44 km (31442.55 m)
+Path Nodes: 176
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 137 segments
+  M: 17 segments
+  C: 7 segments
+  H: 12 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34655
+2nd Closest Distance: 31.79 km (31787.11 m)
+
+3rd Closest Sink: 33544
+3rd Closest Distance: 60.11 km (60105.35 m)
+
+----------------------------------------
+
+Centroid: 33547
+Closest Sink: 34219
+Distance: 32.57 km (32567.75 m)
+Path Nodes: 34
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 21 segments
+  P: 10 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33834
+2nd Closest Distance: 35.28 km (35280.81 m)
+
+3rd Closest Sink: 33860
+3rd Closest Distance: 45.50 km (45504.56 m)
+
+----------------------------------------
+
+Centroid: 33602
+Closest Sink: 33544
+Distance: 40.46 km (40458.88 m)
+Path Nodes: 197
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 101 segments
+  H: 93 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34638
+2nd Closest Distance: 48.36 km (48355.01 m)
+
+3rd Closest Sink: 33541
+3rd Closest Distance: 49.10 km (49103.31 m)
+
+----------------------------------------
+
+Centroid: 33605
+Closest Sink: 33544
+Distance: 43.13 km (43128.60 m)
+Path Nodes: 222
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 115 segments
+  H: 98 segments
+  P: 1 segments
+  M: 5 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33541
+2nd Closest Distance: 47.23 km (47233.89 m)
+
+3rd Closest Sink: 34638
+3rd Closest Distance: 51.44 km (51440.51 m)
+
+----------------------------------------
+
+Centroid: 33637
+Closest Sink: 33544
+Distance: 27.85 km (27854.51 m)
+Path Nodes: 142
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 4 segments
+  CONNECTOR: 78 segments
+  H: 57 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33541
+2nd Closest Distance: 31.77 km (31767.01 m)
+
+3rd Closest Sink: 33815
+3rd Closest Distance: 46.52 km (46519.39 m)
+
+----------------------------------------
+
+Centroid: 33635
+Closest Sink: 34638
+Distance: 39.93 km (39932.17 m)
+Path Nodes: 247
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 22 segments
+  CONNECTOR: 184 segments
+  M: 19 segments
+  C: 7 segments
+  H: 12 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34655
+2nd Closest Distance: 40.28 km (40276.73 m)
+
+3rd Closest Sink: 33544
+3rd Closest Distance: 55.22 km (55223.43 m)
+
+----------------------------------------
+
+Centroid: 33594
+Closest Sink: 33860
+Distance: 35.98 km (35977.02 m)
+Path Nodes: 150
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 87 segments
+  CONNECTOR: 60 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33811
+2nd Closest Distance: 38.44 km (38444.61 m)
+
+3rd Closest Sink: 33815
+3rd Closest Distance: 40.49 km (40485.84 m)
+
+----------------------------------------
+
+Centroid: 33570
+Closest Sink: 34221
+Distance: 18.29 km (18292.89 m)
+Path Nodes: 63
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 43 segments
+  CONNECTOR: 17 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34219
+2nd Closest Distance: 59.67 km (59668.64 m)
+
+3rd Closest Sink: 33834
+3rd Closest Distance: 62.38 km (62381.69 m)
+
+----------------------------------------
+
+Centroid: 33618
+Closest Sink: 34638
+Distance: 30.66 km (30663.38 m)
+Path Nodes: 161
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 100 segments
+  M: 18 segments
+  P: 28 segments
+  H: 12 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33544
+2nd Closest Distance: 31.69 km (31690.50 m)
+
+3rd Closest Sink: 34655
+3rd Closest Distance: 36.82 km (36821.57 m)
+
+----------------------------------------
+
+Centroid: 33616
+Closest Sink: 34638
+Distance: 56.23 km (56225.62 m)
+Path Nodes: 338
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 204 segments
+  P: 103 segments
+  M: 16 segments
+  H: 12 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33544
+2nd Closest Distance: 58.83 km (58829.89 m)
+
+3rd Closest Sink: 34655
+3rd Closest Distance: 62.38 km (62383.80 m)
+
+----------------------------------------
+
+Centroid: 33549
+Closest Sink: 33544
+Distance: 29.60 km (29600.83 m)
+Path Nodes: 133
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 63 segments
+  P: 18 segments
+  M: 7 segments
+  H: 42 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34638
+2nd Closest Distance: 45.57 km (45573.11 m)
+
+3rd Closest Sink: 34655
+3rd Closest Distance: 51.73 km (51731.29 m)
+
+----------------------------------------
+
+Centroid: 33510
+Closest Sink: 33860
+Distance: 44.62 km (44619.59 m)
+Path Nodes: 200
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 88 segments
+  P: 109 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33544
+2nd Closest Distance: 46.82 km (46817.86 m)
+
+3rd Closest Sink: 33811
+3rd Closest Distance: 47.09 km (47087.18 m)
+
+----------------------------------------
+
+Centroid: 33578
+Closest Sink: 34221
+Distance: 46.12 km (46120.42 m)
+Path Nodes: 241
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  H: 36 segments
+  CONNECTOR: 99 segments
+  M: 5 segments
+  P: 98 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33544
+2nd Closest Distance: 50.97 km (50965.47 m)
+
+3rd Closest Sink: 33541
+3rd Closest Distance: 53.14 km (53136.77 m)
+
+----------------------------------------
+
+Centroid: 33611
+Closest Sink: 34638
+Distance: 51.15 km (51146.37 m)
+Path Nodes: 317
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 96 segments
+  CONNECTOR: 190 segments
+  M: 16 segments
+  H: 12 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33544
+2nd Closest Distance: 53.75 km (53750.65 m)
+
+3rd Closest Sink: 34655
+3rd Closest Distance: 57.30 km (57304.56 m)
+
+----------------------------------------
+
+Centroid: 33565
+Closest Sink: 33540
+Distance: 16.59 km (16587.75 m)
+Path Nodes: 68
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 26 segments
+  P: 39 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33815
+2nd Closest Distance: 22.71 km (22711.23 m)
+
+3rd Closest Sink: 33849
+3rd Closest Distance: 25.23 km (25230.77 m)
+
+----------------------------------------
+
+Centroid: 33647
+Closest Sink: 33544
+Distance: 19.33 km (19334.61 m)
+Path Nodes: 83
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 8 segments
+  CONNECTOR: 45 segments
+  H: 27 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33541
+2nd Closest Distance: 41.59 km (41593.95 m)
+
+3rd Closest Sink: 34638
+3rd Closest Distance: 49.57 km (49568.60 m)
+
+----------------------------------------
+
+Centroid: 33596
+Closest Sink: 33860
+Distance: 46.36 km (46356.62 m)
+Path Nodes: 237
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  M: 42 segments
+  CONNECTOR: 117 segments
+  P: 75 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33811
+2nd Closest Distance: 48.82 km (48824.18 m)
+
+3rd Closest Sink: 33815
+3rd Closest Distance: 50.87 km (50865.41 m)
+
+----------------------------------------
+
+Centroid: 33615
+Closest Sink: 34638
+Distance: 41.11 km (41105.03 m)
+Path Nodes: 259
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  CONNECTOR: 174 segments
+  P: 15 segments
+  H: 67 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34655
+2nd Closest Distance: 44.55 km (44547.61 m)
+
+3rd Closest Sink: 33544
+3rd Closest Distance: 50.51 km (50511.72 m)
+
+----------------------------------------
+
+Centroid: 33598
+Closest Sink: 34219
+Distance: 39.61 km (39609.67 m)
+Path Nodes: 64
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 44 segments
+  CONNECTOR: 17 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34221
+2nd Closest Distance: 40.40 km (40400.74 m)
+
+3rd Closest Sink: 33834
+3rd Closest Distance: 42.32 km (42322.73 m)
+
+----------------------------------------
+
+Centroid: 33511
+Closest Sink: 33544
+Distance: 54.17 km (54168.55 m)
+Path Nodes: 329
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  M: 11 segments
+  CONNECTOR: 174 segments
+  P: 80 segments
+  H: 61 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 33860
+2nd Closest Distance: 54.34 km (54344.65 m)
+
+3rd Closest Sink: 33541
+3rd Closest Distance: 56.34 km (56339.85 m)
+
+----------------------------------------
+
+Centroid: 33548
+Closest Sink: 33544
+Distance: 29.60 km (29602.87 m)
+Path Nodes: 132
+Road Types Used:
+  CENTROID_CONNECTOR: 1 segments
+  P: 18 segments
+  CONNECTOR: 62 segments
+  M: 7 segments
+  H: 42 segments
+  COMPONENT_CONNECTOR: 1 segments
+
+2nd Closest Sink: 34638
+2nd Closest Distance: 45.58 km (45575.15 m)
+
+3rd Closest Sink: 34655
+3rd Closest Distance: 51.73 km (51733.33 m)
+
+----------------------------------------
+
