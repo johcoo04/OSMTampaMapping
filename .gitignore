@@ -129,5 +129,6 @@ cython_debug/
 
 # Ignore compiled Python files
 global_env/
+fresh_env/
 __pycache__/
 *.pyc

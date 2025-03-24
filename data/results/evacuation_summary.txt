@@ -8,8 +8,8 @@ Path Nodes: 164
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
   CONNECTOR: 116 segments
-  M: 41 segments
-  C: 4 segments
+  M: 42 segments
+  C: 3 segments
   COMPONENT_CONNECTOR: 1 segments
 
 2nd Closest Sink: 33815
@@ -44,8 +44,8 @@ Distance: 57.01 km (57011.67 m)
 Path Nodes: 338
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 204 segments
-  P: 103 segments
+  CONNECTOR: 207 segments
+  P: 100 segments
   M: 16 segments
   H: 12 segments
   COMPONENT_CONNECTOR: 1 segments
@@ -64,8 +64,8 @@ Distance: 15.73 km (15725.89 m)
 Path Nodes: 71
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 48 segments
-  M: 20 segments
+  CONNECTOR: 49 segments
+  M: 19 segments
   COMPONENT_CONNECTOR: 1 segments
 
 2nd Closest Sink: 33815
@@ -104,9 +104,9 @@ Path Nodes: 249
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
   H: 106 segments
-  CONNECTOR: 134 segments
+  CONNECTOR: 135 segments
   P: 1 segments
-  M: 5 segments
+  M: 4 segments
   COMPONENT_CONNECTOR: 1 segments
 
 2nd Closest Sink: 33541
@@ -123,8 +123,8 @@ Distance: 44.69 km (44688.89 m)
 Path Nodes: 289
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  P: 5 segments
-  CONNECTOR: 189 segments
+  P: 6 segments
+  CONNECTOR: 188 segments
   H: 90 segments
   R: 2 segments
   COMPONENT_CONNECTOR: 1 segments
@@ -163,8 +163,8 @@ Distance: 50.94 km (50937.99 m)
 Path Nodes: 255
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  P: 123 segments
-  CONNECTOR: 116 segments
+  P: 122 segments
+  CONNECTOR: 117 segments
   M: 13 segments
   COMPONENT_CONNECTOR: 1 segments
 
@@ -182,8 +182,8 @@ Distance: 33.80 km (33798.44 m)
 Path Nodes: 226
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 145 segments
-  M: 78 segments
+  CONNECTOR: 146 segments
+  M: 77 segments
   COMPONENT_CONNECTOR: 1 segments
 
 2nd Closest Sink: 33815
@@ -237,8 +237,8 @@ Distance: 36.40 km (36398.31 m)
 Path Nodes: 209
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  P: 57 segments
-  CONNECTOR: 121 segments
+  P: 58 segments
+  CONNECTOR: 120 segments
   M: 16 segments
   H: 12 segments
   COMPONENT_CONNECTOR: 1 segments
@@ -388,10 +388,10 @@ Distance: 18.48 km (18476.73 m)
 Path Nodes: 89
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 61 segments
+  CONNECTOR: 63 segments
   P: 3 segments
-  C: 3 segments
-  M: 19 segments
+  C: 2 segments
+  M: 18 segments
   COMPONENT_CONNECTOR: 1 segments
 
 2nd Closest Sink: 33815
@@ -445,8 +445,8 @@ Distance: 47.52 km (47524.03 m)
 Path Nodes: 285
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  P: 85 segments
-  CONNECTOR: 169 segments
+  P: 83 segments
+  CONNECTOR: 171 segments
   M: 16 segments
   H: 12 segments
   COMPONENT_CONNECTOR: 1 segments
@@ -502,8 +502,8 @@ Distance: 30.09 km (30088.43 m)
 Path Nodes: 136
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  P: 79 segments
-  CONNECTOR: 54 segments
+  P: 78 segments
+  CONNECTOR: 55 segments
   COMPONENT_CONNECTOR: 1 segments
 
 2nd Closest Sink: 34219
@@ -557,8 +557,8 @@ Distance: 38.59 km (38589.19 m)
 Path Nodes: 190
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 72 segments
-  P: 115 segments
+  CONNECTOR: 73 segments
+  P: 114 segments
   COMPONENT_CONNECTOR: 1 segments
 
 2nd Closest Sink: 33544
@@ -631,10 +631,10 @@ Distance: 43.13 km (43128.60 m)
 Path Nodes: 222
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 115 segments
+  CONNECTOR: 116 segments
   H: 98 segments
   P: 1 segments
-  M: 5 segments
+  M: 4 segments
   COMPONENT_CONNECTOR: 1 segments
 
 2nd Closest Sink: 33541
@@ -747,8 +747,8 @@ Distance: 56.23 km (56225.62 m)
 Path Nodes: 338
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 204 segments
-  P: 103 segments
+  CONNECTOR: 207 segments
+  P: 100 segments
   M: 16 segments
   H: 12 segments
   COMPONENT_CONNECTOR: 1 segments
@@ -787,8 +787,8 @@ Distance: 44.62 km (44619.59 m)
 Path Nodes: 200
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 88 segments
-  P: 109 segments
+  CONNECTOR: 87 segments
+  P: 110 segments
   COMPONENT_CONNECTOR: 1 segments
 
 2nd Closest Sink: 33544
@@ -807,8 +807,8 @@ Road Types Used:
   CENTROID_CONNECTOR: 1 segments
   H: 36 segments
   CONNECTOR: 99 segments
-  M: 5 segments
-  P: 98 segments
+  M: 6 segments
+  P: 97 segments
   COMPONENT_CONNECTOR: 1 segments
 
 2nd Closest Sink: 33544
@@ -825,8 +825,8 @@ Distance: 51.15 km (51146.37 m)
 Path Nodes: 317
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  P: 96 segments
-  CONNECTOR: 190 segments
+  P: 93 segments
+  CONNECTOR: 193 segments
   M: 16 segments
   H: 12 segments
   COMPONENT_CONNECTOR: 1 segments
@@ -938,8 +938,8 @@ Distance: 54.17 km (54168.55 m)
 Path Nodes: 329
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  M: 11 segments
-  CONNECTOR: 174 segments
+  M: 10 segments
+  CONNECTOR: 175 segments
   P: 80 segments
   H: 61 segments
   COMPONENT_CONNECTOR: 1 segments
