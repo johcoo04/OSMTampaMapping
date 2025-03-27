@@ -7,6 +7,8 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 from rtree import index  # You might need to pip install rtree
+import pickle
+import argparse
 
 def load_data(routes_path, centroids_path, sink_nodes_path):
     """Load evacuation routes, zip code centroids, and sink nodes."""
@@ -289,6 +291,8 @@ def visualize_path_with_road_types(G, path, output_path, centroid_zip=""):
         'CENTROID_CONNECTOR': 'lime', # Centroid connections (usually hidden)
         'SINK_CONNECTOR': 'orange',   # Sink connections (usually hidden)
         'COMPONENT_CONNECTOR': 'magenta', # Component connections
+        'SINK_TERMINAL_CONNECTOR': 'orange', # Sink to terminal connections
+        'TERMINAL_CONNECTOR': 'cyan',  # Terminal to route connections
         'UNKNOWN': 'black'        # Unknown road type
     }
     
@@ -306,8 +310,8 @@ def visualize_path_with_road_types(G, path, output_path, centroid_zip=""):
             continue
         
         # Adjust alpha based on type
-        alpha = 0.15 if road_type in ['CONNECTOR', 'CENTROID_CONNECTOR', 'SINK_CONNECTOR'] else 0.5
-        width = 0.7 if road_type in ['CONNECTOR', 'CENTROID_CONNECTOR', 'SINK_CONNECTOR'] else 1.5
+        alpha = 0.15 if road_type in ['CONNECTOR', 'CENTROID_CONNECTOR', 'SINK_CONNECTOR', 'SINK_TERMINAL_CONNECTOR'] else 0.5
+        width = 0.7 if road_type in ['CONNECTOR', 'CENTROID_CONNECTOR', 'SINK_CONNECTOR', 'SINK_TERMINAL_CONNECTOR'] else 1.5
         
         # Draw this road type with appropriate color
         nx.draw_networkx_edges(G, pos, edgelist=edges, 
@@ -324,6 +328,12 @@ def visualize_path_with_road_types(G, path, output_path, centroid_zip=""):
     if sink_nodes:
         nx.draw_networkx_nodes(G, pos, nodelist=sink_nodes, node_size=80, 
                              node_color="crimson", alpha=1.0)
+    
+    # Draw terminal nodes in bright blue
+    terminal_nodes = [n for n, d in G.nodes(data=True) if d.get("node_type") == "terminal"]
+    if terminal_nodes:
+        nx.draw_networkx_nodes(G, pos, nodelist=terminal_nodes, node_size=80, 
+                             node_color="blue", alpha=1.0)
     
     # Highlight the current centroid if provided
     if centroid_zip:
@@ -347,7 +357,7 @@ def visualize_path_with_road_types(G, path, output_path, centroid_zip=""):
                 road_type = G.edges[u, v].get('road_type', 'UNKNOWN')
                 color = road_type_colors.get(road_type, 'black')
                 # For artificial connections in the path, use yellow highlight
-                if road_type in ['CONNECTOR', 'CENTROID_CONNECTOR', 'SINK_CONNECTOR', 'COMPONENT_CONNECTOR']:
+                if road_type in ['CONNECTOR', 'CENTROID_CONNECTOR', 'SINK_CONNECTOR', 'COMPONENT_CONNECTOR', 'SINK_TERMINAL_CONNECTOR']:
                     color = 'yellow'
                 nx.draw_networkx_edges(G, pos, edgelist=[(u, v)], 
                                       edge_color=color, width=3, alpha=1.0)
@@ -359,7 +369,7 @@ def visualize_path_with_road_types(G, path, output_path, centroid_zip=""):
     for road_type, color in road_type_colors.items():
         # Only show in legend if there are edges of this type
         if any(d.get('road_type') == road_type for _, _, d in G.edges(data=True)):
-            if road_type in ['CONNECTOR', 'CENTROID_CONNECTOR', 'SINK_CONNECTOR', 'COMPONENT_CONNECTOR']:
+            if road_type in ['CONNECTOR', 'CENTROID_CONNECTOR', 'SINK_CONNECTOR', 'COMPONENT_CONNECTOR', 'SINK_TERMINAL_CONNECTOR']:
                 legend_items.append(plt.Line2D([], [], color=color, linewidth=1, alpha=0.3,
                         label=f'{road_type} (Auto-generated)'))
             else:
@@ -371,6 +381,8 @@ def visualize_path_with_road_types(G, path, output_path, centroid_zip=""):
                        markersize=8, label='Centroids', linestyle='None'))
     legend_items.append(plt.Line2D([], [], marker='o', color='w', markerfacecolor='crimson', 
                        markersize=8, label='Sinks', linestyle='None'))
+    legend_items.append(plt.Line2D([], [], marker='o', color='w', markerfacecolor='blue', 
+                       markersize=8, label='Terminals', linestyle='None'))
     
     if centroid_zip:
         legend_items.append(plt.Line2D([], [], marker='o', color='w', markerfacecolor='yellow', 
@@ -443,12 +455,20 @@ def visualize_components(G, output_path):
                              node_color=["red"] * len(sink_nodes), 
                              node_shape='s', alpha=1.0)
     
+    terminal_nodes = [n for n, d in G.nodes(data=True) if d.get("node_type") == "terminal"]
+    if terminal_nodes:
+        nx.draw_networkx_nodes(G, pos, nodelist=terminal_nodes, node_size=100, 
+                             node_color=["blue"] * len(terminal_nodes), 
+                             node_shape='>', alpha=1.0)
+    
     # Add a legend
     legend_items = []
     legend_items.append(plt.Line2D([], [], marker='*', color='w', markerfacecolor='green', 
                        markersize=15, label='Centroids', linestyle='None'))
     legend_items.append(plt.Line2D([], [], marker='s', color='w', markerfacecolor='red', 
                        markersize=10, label='Sinks', linestyle='None'))
+    legend_items.append(plt.Line2D([], [], marker='>', color='w', markerfacecolor='blue', 
+                       markersize=10, label='Terminals', linestyle='None'))
     
     # Add component legend items
     for i in range(min(len(components), 5)):
@@ -637,27 +657,166 @@ def process_all_centroids(G, centroids_gdf, output_dir):
     print(f"Summary saved to {summary_path}")
     return results
 
+def connect_sinks_to_terminals(G, terminal_nodes_path, sink_nodes_path):
+    """
+    Connect each sink node to each terminal node defined in terminal_nodes.json.
+    Remove any existing connections from sinks to non-terminal nodes.
+    
+    Args:
+        G: NetworkX graph
+        terminal_nodes_path: Path to the terminal nodes JSON file
+        sink_nodes_path: Path to the sink nodes JSON file
+    
+    Returns:
+        G: Modified NetworkX graph with proper sink-terminal connections
+    """
+    print("Connecting sink nodes to terminal nodes...")
+    
+    # Load terminal nodes from JSON
+    with open(terminal_nodes_path, 'r') as f:
+        terminal_data = json.load(f)
+    
+    # Load sink nodes from JSON
+    with open(sink_nodes_path, 'r') as f:
+        sink_data = json.load(f)
+    
+    print(f"Loaded {len(terminal_data)} terminal nodes and {len(sink_data)} sink nodes from JSON")
+    
+    # First, ensure all terminal nodes are in the graph
+    terminal_node_ids = []
+    for terminal_id, coords in terminal_data.items():
+        node_id = f"t_{terminal_id}"
+        terminal_pos = (coords["x"], coords["y"])
+        
+        # Add terminal node if not already in graph
+        if node_id not in G:
+            G.add_node(node_id, pos=terminal_pos, node_type="terminal", road_type="TERMINAL")
+            print(f"Added terminal node {terminal_id} to graph")
+        else:
+            # Update position if node exists
+            G.nodes[node_id]["pos"] = terminal_pos
+            G.nodes[node_id]["node_type"] = "terminal"
+            G.nodes[node_id]["road_type"] = "TERMINAL"
+        
+        terminal_node_ids.append(node_id)
+    
+    # Ensure terminals are connected to the route network
+    route_nodes = [node for node, data in G.nodes(data=True) if data.get("node_type") == "route"]
+    
+    # Build spatial index for route nodes
+    spatial_idx = index.Index()
+    for i, node in enumerate(route_nodes):
+        pos = G.nodes[node]["pos"]
+        # Index format: (id, (left, bottom, right, top))
+        spatial_idx.insert(i, (pos[0], pos[1], pos[0], pos[1]))
+    
+    # Connect each terminal to nearest route nodes
+    for terminal_id in terminal_node_ids:
+        terminal_pos = G.nodes[terminal_id]["pos"]
+        
+        # Skip if terminal already has route connections
+        has_route_connection = any(G.nodes[neighbor].get("node_type") == "route" 
+                                  for neighbor in G.neighbors(terminal_id))
+        
+        if not has_route_connection:
+            # Find nearby route nodes
+            nearby = list(spatial_idx.intersection((
+                terminal_pos[0] - 1000,  # 1km search radius
+                terminal_pos[1] - 1000,
+                terminal_pos[0] + 1000,
+                terminal_pos[1] + 1000
+            )))
+            
+            if nearby:
+                # Connect to closest route node
+                closest_idx = nearby[0]
+                closest_node = route_nodes[closest_idx]
+                closest_pos = G.nodes[closest_node]["pos"]
+                dist = Point(terminal_pos).distance(Point(closest_pos))
+                
+                G.add_edge(terminal_id, closest_node, weight=dist, road_type="TERMINAL_CONNECTOR")
+                print(f"Connected terminal {terminal_id} to route node at distance {dist/1000:.2f} km")
+            else:
+                print(f"Warning: Could not find nearby route nodes for terminal {terminal_id}")
+    
+    # Find all sink nodes in the graph
+    sink_node_ids = []
+    for node, data in G.nodes(data=True):
+        if data.get("node_type") == "sink":
+            sink_node_ids.append(node)
+    
+    # Remove all existing connections from sink nodes
+    for sink_id in sink_node_ids:
+        sink_zip = G.nodes[sink_id].get("zip_code", "unknown")
+        neighbors = list(G.neighbors(sink_id))
+        
+        for neighbor in neighbors:
+            G.remove_edge(sink_id, neighbor)
+        
+        print(f"Removed {len(neighbors)} existing connections from sink {sink_zip}")
+    
+    # Connect each sink to each terminal
+    total_connections = 0
+    for sink_id in sink_node_ids:
+        sink_zip = G.nodes[sink_id].get("zip_code", "unknown")
+        sink_pos = G.nodes[sink_id]["pos"]
+        
+        for terminal_id in terminal_node_ids:
+            terminal_pos = G.nodes[terminal_id]["pos"]
+            dist = Point(sink_pos).distance(Point(terminal_pos))
+            
+            G.add_edge(sink_id, terminal_id, weight=dist, road_type="SINK_TERMINAL_CONNECTOR")
+            total_connections += 1
+        
+        print(f"Connected sink {sink_zip} to all {len(terminal_node_ids)} terminal nodes")
+    
+    print(f"Created {total_connections} connections between sinks and terminals")
+    return G
+
+def save_graph_to_pickle(G, pickle_path):
+    """Save the graph to a pickle file."""
+    with open(pickle_path, 'wb') as f:
+        pickle.dump(G, f)
+    print(f"Saved graph to {pickle_path}")
+
+def load_graph_from_pickle(pickle_path):
+    """Load the graph from a pickle file."""
+    with open(pickle_path, 'rb') as f:
+        G = pickle.load(f)
+    print(f"Loaded graph from {pickle_path}")
+    return G
+
 def main():
     # Define file paths
     data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
     routes_path = os.path.join(data_dir, "Evacuation_Routes_Tampa.geojson")
     centroids_path = os.path.join(data_dir, "zip_code_centroids.json")
     sink_nodes_path = os.path.join(data_dir, "sink_nodes.json")
+    terminal_nodes_path = os.path.join(data_dir, "terminal_nodes.json")
     components_path = os.path.join(data_dir, "graph_components.png")
     results_dir = os.path.join(data_dir, "results")
+    graph_pickle_path = os.path.join(data_dir, "evacuation_graph.pickle")
     
-    # Load data
-    routes_gdf, centroids_gdf, sinks_gdf = load_data(routes_path, centroids_path, sink_nodes_path)
-    
-    # Create graph with improved connectivity
-    # Adjust connection_threshold as needed - higher values create more connections
-    G = create_connected_graph(routes_gdf, centroids_gdf, sinks_gdf, connection_threshold=150)
-    
-    # Visualize the components to diagnose connectivity issues
-    visualize_components(G, components_path)
+    # Check if pickle exists and load it
+    if os.path.exists(graph_pickle_path):
+        # Load graph from pickle
+        G = load_graph_from_pickle(graph_pickle_path)
+        _, centroids_gdf, _ = load_data(routes_path, centroids_path, sink_nodes_path)
+    else:
+        # Load full data and create graph from scratch
+        routes_gdf, centroids_gdf, sinks_gdf = load_data(routes_path, centroids_path, sink_nodes_path)
+        
+        # Create graph with improved connectivity
+        G = create_connected_graph(routes_gdf, centroids_gdf, sinks_gdf, connection_threshold=150)
+        
+        # Connect sinks to terminals according to the terminal_nodes.json file
+        G = connect_sinks_to_terminals(G, terminal_nodes_path, sink_nodes_path)
+        
+        # Save the newly created graph
+        save_graph_to_pickle(G, graph_pickle_path)
     
     # Process all centroids and find paths
     process_all_centroids(G, centroids_gdf, results_dir)
-
+    
 if __name__ == "__main__":
     main()
