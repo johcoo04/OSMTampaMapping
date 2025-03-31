@@ -2,23 +2,50 @@ Time-Phased Evacuation Analysis (OR-Tools)
 ======================================
 
 Total Population: 1,483,281
-Evacuation Phases: 4
-Total Evacuation Time: 0.00 hours (0.0 minutes)
+Evacuation Phases: 12
+Total Evacuation Time: 75.63 hours (4537.5 minutes)
 
 Phase-by-Phase Analysis:
 =======================
 
 Phase 1: No feasible flow found
-  This phase requires additional evacuation capacity.
+  Estimated evacuation time: 14.34 hours (rough estimate)
 
 Phase 2: No feasible flow found
-  This phase requires additional evacuation capacity.
+  Estimated evacuation time: 11.27 hours (rough estimate)
 
 Phase 3: No feasible flow found
-  This phase requires additional evacuation capacity.
+  Estimated evacuation time: 9.38 hours (rough estimate)
 
 Phase 4: No feasible flow found
-  This phase requires additional evacuation capacity.
+  Estimated evacuation time: 6.21 hours (rough estimate)
+
+Phase 5: No feasible flow found
+  Estimated evacuation time: 5.83 hours (rough estimate)
+
+Phase 6: No feasible flow found
+  Estimated evacuation time: 5.64 hours (rough estimate)
+
+Phase 7: No feasible flow found
+  Estimated evacuation time: 5.20 hours (rough estimate)
+
+Phase 8: No feasible flow found
+  Estimated evacuation time: 4.61 hours (rough estimate)
+
+Phase 9: No feasible flow found
+  Estimated evacuation time: 3.79 hours (rough estimate)
+
+Phase 10: No feasible flow found
+  Estimated evacuation time: 3.52 hours (rough estimate)
+
+Phase 11: No feasible flow found
+  Estimated evacuation time: 3.00 hours (rough estimate)
+
+Phase 12:
+  Population: 27,674
+  Evacuation time: 2.85 hours (170.7 minutes)
+  Bottleneck flow: 9,726 people/hour
+  Bottleneck road type: TERMINAL_CONNECTOR
 
 
 Detailed Population by Phase:
@@ -29,54 +56,70 @@ Phase 1 ZIP Codes:
   33578: 55,724 people
   33612: 50,697 people
   33617: 48,987 people
+
+Phase 2 ZIP Codes:
   33615: 48,849 people
   33614: 46,844 people
   33610: 45,622 people
   33579: 42,456 people
   33624: 41,661 people
+
+Phase 3 ZIP Codes:
   33604: 40,328 people
   33619: 39,272 people
   33613: 37,354 people
-
-Phase 2 ZIP Codes:
   33594: 35,824 people
   33611: 34,877 people
+
+Phase 4 ZIP Codes:
   33570: 32,620 people
   33626: 30,736 people
   33547: 30,431 people
   33556: 30,386 people
+
+Phase 5 ZIP Codes:
   33510: 30,103 people
   33558: 29,098 people
   33625: 28,818 people
   33596: 28,558 people
+
+Phase 6 ZIP Codes:
   33573: 28,491 people
   33618: 28,416 people
   33598: 27,978 people
-
-Phase 3 ZIP Codes:
   33584: 27,863 people
+
+Phase 7 ZIP Codes:
   33563: 26,874 people
   33629: 26,625 people
   33569: 26,189 people
   33607: 24,257 people
+
+Phase 8 ZIP Codes:
   33572: 23,846 people
   33634: 22,927 people
   33566: 22,842 people
   33606: 22,546 people
+
+Phase 9 ZIP Codes:
   33635: 19,917 people
   33603: 19,545 people
   33609: 18,411 people
   33549: 18,016 people
 
-Phase 4 ZIP Codes:
+Phase 10 ZIP Codes:
   33565: 17,767 people
   33602: 17,631 people
   33637: 17,507 people
   33534: 17,479 people
+
+Phase 11 ZIP Codes:
   33527: 16,342 people
   33605: 16,166 people
   33616: 14,918 people
   33567: 12,499 people
+
+Phase 12 ZIP Codes:
   33592: 11,275 people
   33548: 7,639 people
   33620: 6,451 people
