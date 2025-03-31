@@ -7,9 +7,9 @@ Distance: 28.49 km (28487.76 m)
 Path Nodes: 155
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 107 segments
+  CONNECTOR: 109 segments
   M: 40 segments
-  C: 4 segments
+  C: 2 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -84,11 +84,11 @@ Distance: 36.28 km (36283.44 m)
 Path Nodes: 209
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 117 segments
+  CONNECTOR: 116 segments
   M: 2 segments
   R: 4 segments
   P: 24 segments
-  H: 58 segments
+  H: 59 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -106,8 +106,8 @@ Distance: 47.57 km (47568.19 m)
 Path Nodes: 242
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  H: 103 segments
-  CONNECTOR: 129 segments
+  H: 102 segments
+  CONNECTOR: 130 segments
   P: 1 segments
   M: 5 segments
   TERMINAL_CONNECTOR: 1 segments
@@ -127,8 +127,8 @@ Distance: 43.25 km (43250.71 m)
 Path Nodes: 227
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 124 segments
-  P: 99 segments
+  CONNECTOR: 123 segments
+  P: 100 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -168,9 +168,9 @@ Path Nodes: 215
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
   P: 25 segments
-  CONNECTOR: 74 segments
+  CONNECTOR: 75 segments
   M: 6 segments
-  H: 106 segments
+  H: 105 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -188,8 +188,8 @@ Distance: 33.37 km (33370.30 m)
 Path Nodes: 217
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 136 segments
-  M: 77 segments
+  CONNECTOR: 139 segments
+  M: 74 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -246,8 +246,8 @@ Distance: 34.39 km (34391.37 m)
 Path Nodes: 169
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  P: 77 segments
-  CONNECTOR: 88 segments
+  P: 78 segments
+  CONNECTOR: 87 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -265,8 +265,8 @@ Distance: 20.67 km (20667.17 m)
 Path Nodes: 86
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  P: 51 segments
-  CONNECTOR: 31 segments
+  P: 52 segments
+  CONNECTOR: 30 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -286,8 +286,8 @@ Road Types Used:
   CENTROID_CONNECTOR: 1 segments
   CONNECTOR: 149 segments
   M: 13 segments
-  P: 67 segments
-  H: 58 segments
+  P: 66 segments
+  H: 59 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -324,8 +324,8 @@ Distance: 37.81 km (37814.64 m)
 Path Nodes: 163
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  H: 81 segments
-  CONNECTOR: 78 segments
+  H: 80 segments
+  CONNECTOR: 79 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -343,8 +343,8 @@ Distance: 17.98 km (17977.71 m)
 Path Nodes: 71
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  P: 33 segments
-  CONNECTOR: 34 segments
+  P: 34 segments
+  CONNECTOR: 33 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -362,10 +362,10 @@ Distance: 27.88 km (27883.28 m)
 Path Nodes: 97
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 30 segments
+  CONNECTOR: 31 segments
   P: 7 segments
   R: 1 segments
-  H: 55 segments
+  H: 54 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -383,9 +383,9 @@ Distance: 31.99 km (31991.73 m)
 Path Nodes: 162
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 87 segments
+  CONNECTOR: 86 segments
   P: 17 segments
-  H: 54 segments
+  H: 55 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -521,8 +521,8 @@ Distance: 30.37 km (30374.86 m)
 Path Nodes: 137
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  P: 79 segments
-  CONNECTOR: 54 segments
+  P: 81 segments
+  CONNECTOR: 52 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -579,8 +579,8 @@ Distance: 38.88 km (38875.62 m)
 Path Nodes: 191
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 72 segments
-  P: 115 segments
+  CONNECTOR: 70 segments
+  P: 117 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -637,8 +637,8 @@ Distance: 40.62 km (40618.57 m)
 Path Nodes: 190
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 96 segments
-  H: 90 segments
+  CONNECTOR: 97 segments
+  H: 89 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -656,8 +656,8 @@ Distance: 43.29 km (43288.29 m)
 Path Nodes: 215
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 110 segments
-  H: 95 segments
+  CONNECTOR: 111 segments
+  H: 94 segments
   P: 1 segments
   M: 5 segments
   TERMINAL_CONNECTOR: 1 segments
@@ -678,8 +678,8 @@ Path Nodes: 134
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
   P: 4 segments
-  CONNECTOR: 72 segments
-  H: 54 segments
+  CONNECTOR: 71 segments
+  H: 55 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -718,8 +718,8 @@ Distance: 29.22 km (29220.29 m)
 Path Nodes: 145
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  P: 83 segments
-  CONNECTOR: 58 segments
+  P: 84 segments
+  CONNECTOR: 57 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -756,9 +756,9 @@ Distance: 28.66 km (28656.44 m)
 Path Nodes: 121
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 67 segments
+  CONNECTOR: 66 segments
   M: 2 segments
-  P: 48 segments
+  P: 49 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -814,8 +814,8 @@ Distance: 37.86 km (37862.86 m)
 Path Nodes: 195
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  CONNECTOR: 86 segments
-  P: 105 segments
+  CONNECTOR: 85 segments
+  P: 106 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -833,8 +833,8 @@ Distance: 43.68 km (43684.90 m)
 Path Nodes: 199
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
-  H: 144 segments
-  CONNECTOR: 51 segments
+  H: 143 segments
+  CONNECTOR: 52 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -910,8 +910,8 @@ Path Nodes: 232
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
   M: 42 segments
-  CONNECTOR: 115 segments
-  P: 71 segments
+  CONNECTOR: 114 segments
+  P: 72 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -970,8 +970,8 @@ Path Nodes: 275
 Road Types Used:
   CENTROID_CONNECTOR: 1 segments
   M: 27 segments
-  CONNECTOR: 144 segments
-  P: 100 segments
+  CONNECTOR: 142 segments
+  P: 102 segments
   TERMINAL_CONNECTOR: 1 segments
   SINK_TERMINAL_CONNECTOR: 1 segments
 
@@ -1002,3 +1002,11 @@ Road Types Used:
 
 ----------------------------------------
 
+
+
+Performance Summary
+=================
+Graph Preparation Time: 0.46 seconds (0.01 minutes)
+Pathfinding Time: 52.16 seconds (0.87 minutes)
+Total Run Time: 52.62 seconds (0.88 minutes)
+Average Time Per Centroid: 1.02 seconds

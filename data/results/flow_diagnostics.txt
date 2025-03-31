@@ -1,0 +1,8 @@
+Flow Analysis Diagnostic Information
+==================================
+
+Total Population: 1483281
+Source Nodes: 51
+Sink Nodes: 12
+Reachable Sources: 51/51
+

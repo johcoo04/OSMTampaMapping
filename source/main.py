@@ -9,6 +9,7 @@ import numpy as np
 from rtree import index
 import pickle
 import argparse
+from ortools.graph.python import min_cost_flow
 
 #Building from scratch
 def load_data(routes_path, centroids_path, sink_nodes_path):
@@ -418,18 +419,7 @@ def visualize_path_with_road_types(G, path, output_path, centroid_zip=""):
     plt.close()
 
 def connect_sinks_to_terminals(G, terminal_nodes_path, sink_nodes_path):
-    """
-    Connect each sink node to each terminal node defined in terminal_nodes.json.
-    Remove any existing connections from sinks to non-terminal nodes.
     
-    Args:
-        G: NetworkX graph
-        terminal_nodes_path: Path to the terminal nodes JSON file
-        sink_nodes_path: Path to the sink nodes JSON file
-    
-    Returns:
-        G: Modified NetworkX graph with proper sink-terminal connections
-    """
     print("Connecting sink nodes to terminal nodes...")
     
     # Load terminal nodes from JSON
@@ -685,6 +675,384 @@ def process_all_centroids(G, centroids_gdf, output_dir):
     print(f"Summary saved to {summary_path}")
     return results
 
+def assign_road_capacities_and_population(G, population_data_path, sink_nodes_path):
+
+    print("Assigning road capacities and population data...")
+    
+    # Define road properties (capacity in people/hour, speed in km/h)
+    road_properties = {
+        'H': {'capacity': 20000, 'speed_kph': 100},  # Highway
+        'P': {'capacity': 8000, 'speed_kph': 80},    # Primary road
+        'M': {'capacity': 7000, 'speed_kph': 60},    # Major road
+        'C': {'capacity': 10000, 'speed_kph': 50},   # Collector road
+        'R': {'capacity': 3000, 'speed_kph': 40},    # Ramp
+        'CONNECTOR': {'capacity': 9999, 'speed_kph': 70},  # Artificial connectors
+        'CENTROID_CONNECTOR': {'capacity': 9999, 'speed_kph': 50},
+        'SINK_CONNECTOR': {'capacity': 9999, 'speed_kph': 50},
+        'COMPONENT_CONNECTOR': {'capacity': 9999, 'speed_kph': 70},
+        'SINK_TERMINAL_CONNECTOR': {'capacity': 9999, 'speed_kph': 80},
+        'TERMINAL_CONNECTOR': {'capacity': 9999, 'speed_kph': 80},
+        'UNKNOWN': {'capacity': 500, 'speed_kph': 30}
+    }
+    
+    # Define default properties to use when a road type isn't found
+    default_properties = {'capacity': 500, 'speed_kph': 30}
+    
+    # Load population data - array format
+    with open(population_data_path, 'r') as f:
+        population_array = json.load(f)
+    
+    # Convert array to dictionary with zip codes as keys
+    population_data = {}
+    for item in population_array:
+        zip_code = item.get("zip")
+        if zip_code:
+            population_data[zip_code] = {"population": item.get("population", 0)}
+    
+    print(f"Loaded population data for {len(population_data)} zip codes")
+    
+    # Load sink node capacities
+    with open(sink_nodes_path, 'r') as f:
+        sink_data = json.load(f)
+    
+    print(f"Loaded capacity data for {len(sink_data)} sink nodes")
+    
+    # Assign capacity and travel time to all edges based on road type
+    edges_updated = 0
+    for u, v, data in G.edges(data=True):
+        road_type = data.get('road_type', 'UNKNOWN')
+        # Use first character if it's a single-character road type
+        road_key = road_type[0] if len(road_type) == 1 else road_type
+        
+        # Get properties with a safe fallback
+        props = road_properties.get(road_key, default_properties)
+        
+        # Assign capacity
+        G[u][v]['capacity'] = props['capacity']
+        
+        # Calculate travel time
+        distance_km = data['weight'] / 1000  # Convert meters to km
+        travel_time_hours = distance_km / props['speed_kph']
+        G[u][v]['travel_time'] = travel_time_hours
+        
+        edges_updated += 1
+    
+    print(f"Updated {edges_updated} edges with capacity and travel time attributes")
+    
+    # Assign population as 'demand' to centroid nodes (negative for sources)
+    centroids_updated = 0
+    for node, data in G.nodes(data=True):
+        if data.get("node_type") == "centroid":
+            zip_code = data.get("zip_code")
+            if zip_code in population_data:
+                population = population_data[zip_code].get("population", 0)
+                # Set as negative for sources in min cost flow
+                G.nodes[node]['demand'] = -population
+                centroids_updated += 1
+            else:
+                print(f"Warning: No population data found for zip code {zip_code}")
+                G.nodes[node]['demand'] = 0
+    
+    print(f"Updated {centroids_updated} centroids with population demand")
+    
+    # Assign capacity values to sink nodes from the sink_nodes.json file
+    sinks_updated = 0
+    for node, data in G.nodes(data=True):
+        if data.get("node_type") == "sink":
+            zip_code = data.get("zip_code")
+            if zip_code in sink_data:
+                # Set the capacity from the sink_nodes.json file
+                capacity = sink_data[zip_code].get("population", 1999999)
+                G.nodes[node]['demand'] = capacity
+                G.nodes[node]['capacity'] = capacity
+                sinks_updated += 1
+            else:
+                print(f"Warning: No capacity data found for sink with zip code {zip_code}")
+                # Default fallback capacity
+                G.nodes[node]['demand'] = 1999999
+                G.nodes[node]['capacity'] = 1999999
+    
+    print(f"Updated {sinks_updated} sink nodes with capacity values from sink_nodes.json")
+    
+    return G
+
+def analyze_evacuation_flow_ortools(G, output_dir, phases=4, debug=True):
+    """
+    Analyze evacuation flow using Google OR-Tools for much faster computation.
+    """
+    from ortools.graph.python import min_cost_flow
+    
+    print(f"Analyzing evacuation flow using {phases}-phase evacuation model with OR-Tools...")
+    start_time = time.time()
+    
+    # Identify source (centroid) nodes with population data
+    source_nodes = []
+    sink_nodes = []
+    
+    for node, data in G.nodes(data=True):
+        if data.get("node_type") == "centroid" and data.get("demand", 0) < 0:
+            population = -data.get("demand", 0)
+            zip_code = data.get("zip_code", "unknown")
+            source_nodes.append((node, population, zip_code))
+        elif data.get("node_type") == "sink":
+            sink_nodes.append(node)
+    
+    # Sort source nodes by population in descending order
+    source_nodes.sort(key=lambda x: x[1], reverse=True)
+    total_population = sum(pop for _, pop, _ in source_nodes)
+    
+    print(f"Planning evacuation for {total_population:,} people from {len(source_nodes)} zip codes")
+    print(f"Dividing into {phases} evacuation waves")
+    
+    # Divide sources into phases
+    sources_per_phase = len(source_nodes) // phases
+    remainder = len(source_nodes) % phases
+    
+    phase_sources = []
+    start_idx = 0
+    
+    for i in range(phases):
+        extra = 1 if i < remainder else 0
+        end_idx = start_idx + sources_per_phase + extra
+        phase_sources.append(source_nodes[start_idx:end_idx])
+        start_idx = end_idx
+    
+    # Process each phase
+    phase_results = []
+    cumulative_time = 0
+    cumulative_output = []
+    
+    for phase_idx, sources in enumerate(phase_sources):
+        phase_start_time = time.time()
+        phase_num = phase_idx + 1
+        print(f"\nProcessing Phase {phase_num} with {len(sources)} source nodes")
+        
+        # Add detailed flow information for each centroid
+        if debug:
+            print("\nCentroid evacuation capacity breakdown:")
+            for node, pop, zip_code in sources:
+                outgoing_capacity = sum(G[node][neighbor].get('capacity', 0) for neighbor in G.neighbors(node))
+                print(f"  ZIP {zip_code}: {pop:,} people / {outgoing_capacity:,} capacity per hour")
+        
+        # Create phase-specific graph copy
+        F = G.copy()
+        
+        # Reset all demands
+        for node in F.nodes():
+            if 'demand' in F.nodes[node]:
+                F.nodes[node]['demand'] = 0
+        
+        # Set demand only for current phase sources
+        phase_pop = 0
+        for node, pop, zip_code in sources:
+            F.nodes[node]['demand'] = -pop
+            phase_pop += pop
+            print(f"  Phase {phase_num} source: {zip_code} with population {pop:,}")
+        
+        # Create a super sink
+        super_sink = f"super_sink_phase_{phase_num}"
+        F.add_node(super_sink, demand=phase_pop)
+        
+        # Connect sinks to super sink
+        for sink in sink_nodes:
+            F.add_edge(sink, super_sink, capacity=999999, weight=1)
+        
+        print(f"Phase {phase_num} total population: {phase_pop:,}")
+        
+        try:
+            # Before starting the min cost flow solver, add a debug section
+            if debug:
+                print("  Network flow problem setup:")
+                total_source_supply = 0
+                total_sink_demand = 0
+                
+                for node, data in F.nodes(data=True):
+                    demand = data.get('demand', 0)
+                    if demand < 0:
+                        total_source_supply += abs(demand)
+                    elif demand > 0 and node != super_sink:
+                        total_sink_demand += demand
+                
+                print(f"  Total source supply: {total_source_supply:,}")
+                print(f"  Total sink demand: {F.nodes[super_sink].get('demand', 0):,}")
+                print(f"  Balance check: {total_source_supply == F.nodes[super_sink].get('demand', 0)}")
+            
+            # Create the min cost flow solver 
+            mcf = min_cost_flow.SimpleMinCostFlow()
+            
+            # Dictionary to map node IDs to integers
+            node_map = {}
+            reverse_map = {}
+            
+            # Set demands as supplies (negated values)
+            for i, node in enumerate(F.nodes()):
+                node_map[node] = i
+                reverse_map[i] = node
+                
+                # Node demand (negative for sources, positive for sinks)
+                demand = F.nodes[node].get('demand', 0)
+                
+                # In OR-Tools, supply is positive at sources, negative at sinks
+                # (opposite of our demand convention)
+                if demand != 0:
+                    mcf.set_node_supply(node_map[node], -demand)  # Negate the demand to get supply
+            
+            # Add each node with demand
+            for node, data in F.nodes(data=True):
+                demand = data.get('demand', 0)
+                if demand != 0:
+                    # Use set_node_supply instead of SetNodeSupply
+                    mcf.set_node_supply(node_map[node], int(demand))
+            
+            # Add each edge as an arc
+            for u, v, data in F.edges(data=True):
+                capacity = int(data.get('capacity', 0))
+                weight = max(1, int(data.get('weight', 1) * 10))  # Scale weights for better precision
+                
+                # Use add_arc_with_capacity_and_unit_cost instead of AddArcWithCapacityAndUnitCost
+                mcf.add_arc_with_capacity_and_unit_cost(
+                    node_map[u], node_map[v], capacity, weight)
+                
+                # Add reverse edge for undirected graph representation
+                if not F.is_directed():
+                    mcf.add_arc_with_capacity_and_unit_cost(
+                        node_map[v], node_map[u], capacity, weight)
+            
+            # Find the min cost flow
+            print("  Starting OR-Tools MinCostFlow computation...")
+            computation_start = time.time()
+            status = mcf.solve()
+            computation_time = time.time() - computation_start
+            print(f"  OR-Tools computation completed in {computation_time:.2f} seconds")
+            
+            if status == mcf.OPTIMAL:
+                print("  Optimal solution found!")
+                
+                # Extract flow results
+                max_flow = 0
+                bottleneck_edge = None
+                congested_edges = []
+                total_flow = 0
+                used_flow_paths = 0
+                
+                for i in range(mcf.num_arcs()):
+                    if mcf.flow(i) > 0:
+                        # Get arc endpoints - use lower case methods
+                        tail = mcf.tail(i)
+                        head = mcf.head(i)
+                        flow = mcf.flow(i)
+                        capacity = mcf.capacity(i)
+                        
+                        # Map back to original node IDs
+                        orig_u = reverse_map[tail]
+                        orig_v = reverse_map[head]
+                        
+                        # Skip super sink connections for bottleneck analysis
+                        if orig_v != super_sink and orig_u != super_sink:
+                            used_flow_paths += 1
+                            total_flow += flow
+                            
+                            if flow > max_flow:
+                                max_flow = flow
+                                bottleneck_edge = (orig_u, orig_v)
+                            
+                            # Check for congestion
+                            if capacity > 0 and flow / capacity > 0.8:
+                                road_type = 'UNKNOWN'
+                                if F.has_edge(orig_u, orig_v):
+                                    road_type = F[orig_u][orig_v].get('road_type', 'UNKNOWN')
+                                    
+                                congested_edges.append((orig_u, orig_v, flow, capacity, flow/capacity, road_type))
+                
+                # Calculate evacuation time for this phase
+                phase_time = phase_pop / max(1, max_flow)
+                
+                if debug:
+                    print(f"  Total evacuation flow: {total_flow:,} units")
+                    print(f"  Used {used_flow_paths} flow paths")
+                
+                if debug and bottleneck_edge:
+                    u, v = bottleneck_edge
+                    print(f"  Bottleneck: {u} → {v} with flow {max_flow:,} people/hour")
+                    if F.has_edge(u, v):
+                        road_type = F[u][v].get('road_type', 'UNKNOWN')
+                        print(f"  Bottleneck road type: {road_type}")
+                    
+                    print(f"  Found {len(congested_edges)} congested road segments (>80% capacity)")
+                    if congested_edges:
+                        for i, (u, v, flow, capacity, ratio, road_type) in enumerate(
+                                sorted(congested_edges, key=lambda x: x[4], reverse=True)[:5]):
+                            print(f"    {i+1}. {u} → {v} ({road_type}): {flow:,}/{capacity:,} ({ratio*100:.1f}%)")
+                
+                # Store results
+                phase_results.append({
+                    'phase': phase_num,
+                    'population': phase_pop,
+                    'max_flow': max_flow,
+                    'evacuation_time': phase_time,
+                    'bottleneck_edge': bottleneck_edge,
+                    'congested_edges': congested_edges[:20] if congested_edges else []
+                })
+                
+                print(f"Phase {phase_num} evacuation time: {phase_time:.2f} hours ({phase_time*60:.1f} minutes)")
+                cumulative_time += phase_time
+                
+                # Add to cumulative output
+                cumulative_output.append(f"Phase {phase_num}:")
+                cumulative_output.append(f"  Population: {phase_pop:,}")
+                cumulative_output.append(f"  Evacuation time: {phase_time:.2f} hours ({phase_time*60:.1f} minutes)")
+                cumulative_output.append(f"  Bottleneck flow: {max_flow:,} people/hour")
+                if bottleneck_edge and F.has_edge(bottleneck_edge[0], bottleneck_edge[1]):
+                    road_type = F[bottleneck_edge[0]][bottleneck_edge[1]].get('road_type', 'UNKNOWN')
+                    cumulative_output.append(f"  Bottleneck road type: {road_type}")
+                cumulative_output.append("")
+                
+            else:
+                print(f"  OR-Tools solver status: {status} - No optimal solution found!")
+                cumulative_output.append(f"Phase {phase_num}: No feasible flow found")
+                cumulative_output.append(f"  This phase requires additional evacuation capacity.")
+                cumulative_output.append("")
+                
+        except Exception as e:
+            print(f"Error in Phase {phase_num}: {str(e)}")
+            cumulative_output.append(f"Phase {phase_num}: Error - {str(e)}")
+            cumulative_output.append("")
+        
+        phase_time_taken = time.time() - phase_start_time
+        print(f"Phase {phase_num} calculation took {phase_time_taken:.2f} seconds")
+    
+    # Write overall summary
+    summary_path = os.path.join(output_dir, "phased_evacuation_summary.txt")
+    with open(summary_path, 'w') as f:
+        f.write("Time-Phased Evacuation Analysis (OR-Tools)\n")
+        f.write("======================================\n\n")
+        f.write(f"Total Population: {total_population:,}\n")
+        f.write(f"Evacuation Phases: {phases}\n")
+        f.write(f"Total Evacuation Time: {cumulative_time:.2f} hours ({cumulative_time*60:.1f} minutes)\n\n")
+        
+        f.write("Phase-by-Phase Analysis:\n")
+        f.write("=======================\n\n")
+        
+        for line in cumulative_output:
+            f.write(line + "\n")
+        
+        # Add detailed population by phase
+        f.write("\nDetailed Population by Phase:\n")
+        for phase_idx, sources in enumerate(phase_sources):
+            f.write(f"\nPhase {phase_idx+1} ZIP Codes:\n")
+            for _, pop, zip_code in sources:
+                f.write(f"  {zip_code}: {pop:,} people\n")
+    
+    print(f"\nTime-phased evacuation analysis completed in {time.time() - start_time:.2f} seconds")
+    print(f"Total estimated evacuation time: {cumulative_time:.2f} hours ({cumulative_time*60:.1f} minutes)")
+    print(f"Results saved to {summary_path}")
+    
+    return {
+        'total_population': total_population,
+        'total_evacuation_time': cumulative_time,
+        'phase_results': phase_results
+    }
+
 def main():
     # Start timing for overall execution
     total_start_time = time.time()
@@ -698,6 +1066,7 @@ def main():
     components_path = os.path.join(data_dir, "graph_components.png")
     results_dir = os.path.join(data_dir, "results")
     graph_pickle_path = os.path.join(data_dir, "evacuation_graph.pickle")
+    population_data_path = os.path.join(data_dir, "Tampa-zip-codes-data.json")
     
     # Track graph preparation time
     graph_prep_time = 0
@@ -721,6 +1090,9 @@ def main():
         # Save the newly created graph
         save_graph_to_pickle(G, graph_pickle_path)
     
+    # Assign capacities and population data to the graph
+    G = assign_road_capacities_and_population(G, population_data_path, sink_nodes_path)
+    
     graph_prep_time = time.time() - graph_prep_start
     
     # Start timing pathfinding process
@@ -728,6 +1100,9 @@ def main():
     
     # Process all centroids and find paths
     results = process_all_centroids(G, centroids_gdf, results_dir)
+    
+    # Add this line to run the OR-Tools evacuation analysis
+    flow_results = analyze_evacuation_flow_ortools(G, results_dir, phases=4)
     
     pathfinding_time = time.time() - pathfinding_start
     total_time = time.time() - total_start_time
