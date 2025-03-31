@@ -548,23 +548,27 @@ def load_graph_from_pickle(pickle_path):
 
 #Building from pickle
 def process_all_centroids(G, centroids_gdf, output_dir):
-    """Process all centroids, find the top 3 closest sinks for each."""
+    """Process all centroids, find paths to the top 3 closest sinks using A*."""
+    print("Computing shortest paths to multiple sinks using A* algorithm...")
+    start_time = time.time()
+    
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
     
-    # Get sink nodes
+    # Get all sink and centroid nodes
     sink_nodes = [node for node, data in G.nodes(data=True) if data.get("node_type") == "sink"]
+    centroid_nodes = {}
     
-    # Check if the graph is connected
-    if not nx.is_connected(G):
-        print("Warning: Graph is not fully connected. Some paths may not be found.")
-        # Get the components
-        components = list(nx.connected_components(G))
-        # Map each node to its component
-        node_to_component = {}
-        for i, component in enumerate(components):
-            for node in component:
-                node_to_component[node] = i
+    # Map ZIP codes to centroid node IDs
+    for node, data in G.nodes(data=True):
+        if data.get("node_type") == "centroid":
+            centroid_nodes[data.get("zip_code")] = node
+    
+    # Define a heuristic function for A* (Euclidean distance)
+    def heuristic(n1, n2):
+        pos1 = G.nodes[n1]['pos']
+        pos2 = G.nodes[n2]['pos']
+        return Point(pos1).distance(Point(pos2))
     
     # Process each centroid
     results = []
@@ -572,96 +576,64 @@ def process_all_centroids(G, centroids_gdf, output_dir):
         zip_code = centroid["ZIP_CODE"]
         print(f"Processing centroid {zip_code}...")
         
-        # Find the centroid node
-        centroid_node = None
-        for node, data in G.nodes(data=True):
-            if data.get("node_type") == "centroid" and data.get("zip_code") == zip_code:
-                centroid_node = node
-                break
-        
+        # Get the centroid node
+        centroid_node = centroid_nodes.get(zip_code)
         if not centroid_node:
             print(f"Warning: Centroid {zip_code} not found in the graph!")
             continue
         
-        # Find paths to all reachable sinks
-        all_paths = []
+        # Find paths to all sinks using A*
+        sink_distances = []
+        for sink_node in sink_nodes:
+            try:
+                # Get both the path and its length
+                path = nx.astar_path(G, centroid_node, sink_node, 
+                                    heuristic=heuristic, weight="weight")
+                distance = sum(G[u][v]['weight'] for u, v in zip(path, path[1:]))
+                
+                sink_zip = G.nodes[sink_node].get("zip_code")
+                
+                # Count road types in the path
+                road_types_in_path = {}
+                for u, v in zip(path, path[1:]):
+                    road_type = G.edges[u, v].get('road_type', 'UNKNOWN')
+                    road_types_in_path[road_type] = road_types_in_path.get(road_type, 0) + 1
+                
+                sink_distances.append({
+                    "sink": sink_zip,
+                    "sink_node": sink_node,
+                    "distance_meters": distance,
+                    "distance_km": distance/1000,
+                    "path_nodes": len(path),
+                    "path": path,
+                    "road_types": road_types_in_path
+                })
+            except nx.NetworkXNoPath:
+                continue
         
-        # If the graph is connected, search all sinks
-        if nx.is_connected(G):
-            for sink_node in sink_nodes:
-                try:
-                    path = nx.shortest_path(G, source=centroid_node, target=sink_node, weight="weight")
-                    distance = nx.shortest_path_length(G, source=centroid_node, target=sink_node, weight="weight")
-                    sink_zip = G.nodes[sink_node].get("zip_code")
-                    
-                    # Count road types in the path
-                    path_edges = list(zip(path, path[1:]))
-                    road_types_in_path = {}
-                    for u, v in path_edges:
-                        if G.has_edge(u, v):
-                            road_type = G.edges[u, v].get('road_type', 'UNKNOWN')
-                            road_types_in_path[road_type] = road_types_in_path.get(road_type, 0) + 1
-                    
-                    all_paths.append({
-                        "sink": sink_zip,
-                        "distance_meters": distance,
-                        "distance_km": distance/1000,
-                        "path_nodes": len(path),
-                        "path": path,
-                        "road_types": road_types_in_path
-                    })
-                except nx.NetworkXNoPath:
-                    continue
-        else:
-            # If not connected, only search sinks in the same component
-            centroid_component = node_to_component.get(centroid_node)
-            component_sinks = [sink for sink in sink_nodes if node_to_component.get(sink) == centroid_component]
+        if not sink_distances:
+            print(f"No path found from centroid {zip_code} to any sink!")
+            results.append({"centroid": zip_code, "paths": []})
+            continue
             
-            for sink_node in component_sinks:
-                try:
-                    path = nx.shortest_path(G, source=centroid_node, target=sink_node, weight="weight")
-                    distance = nx.shortest_path_length(G, source=centroid_node, target=sink_node, weight="weight")
-                    sink_zip = G.nodes[sink_node].get("zip_code")
-                    
-                    # Count road types in the path
-                    path_edges = list(zip(path, path[1:]))
-                    road_types_in_path = {}
-                    for u, v in path_edges:
-                        if G.has_edge(u, v):
-                            road_type = G.edges[u, v].get('road_type', 'UNKNOWN')
-                            road_types_in_path[road_type] = road_types_in_path.get(road_type, 0) + 1
-                    
-                    all_paths.append({
-                        "sink": sink_zip,
-                        "distance_meters": distance,
-                        "distance_km": distance/1000,
-                        "path_nodes": len(path),
-                        "path": path,
-                        "road_types": road_types_in_path
-                    })
-                except nx.NetworkXNoPath:
-                    continue
-        
-        # Sort paths by distance
-        all_paths.sort(key=lambda x: x["distance_meters"])
-        
-        # Get top 3 paths (or fewer if not enough)
-        top_paths = all_paths[:min(3, len(all_paths))]
+        # Sort by distance and get top 3 sinks (or fewer if not available)
+        sink_distances.sort(key=lambda x: x["distance_meters"])
+        top_paths = sink_distances[:min(3, len(sink_distances))]
         
         if top_paths:
-            # Visualize only the shortest path
-            shortest_path_data = top_paths[0]
-            output_path = os.path.join(output_dir, f"path_{zip_code}_to_{shortest_path_data['sink']}.png")
-            visualize_path_with_road_types(G, shortest_path_data["path"], output_path, zip_code)
+            # Comment out visualization to save time
+            # shortest_path_data = top_paths[0]
+            # output_path = os.path.join(output_dir, f"path_{zip_code}_to_{shortest_path_data['sink']}.png")
+            # visualize_path_with_road_types(G, shortest_path_data["path"], output_path, zip_code)
             
             # Add result to collection
             result = {
                 "centroid": zip_code,
-                "paths": top_paths
+                "paths": top_paths  # Top 3 paths to different sinks
             }
             results.append(result)
             
-            print(f"Found {len(top_paths)} paths from centroid {zip_code}")
+            print(f"Found {len(top_paths)} paths from centroid {zip_code} to different sinks")
             for i, path_data in enumerate(top_paths):
                 print(f"  Path {i+1}: to sink {path_data['sink']}, distance: {path_data['distance_km']:.2f} km")
         else:
@@ -708,10 +680,15 @@ def process_all_centroids(G, centroids_gdf, output_dir):
             
             f.write("\n" + "-"*40 + "\n\n")
     
+    total_time = time.time() - start_time
+    print(f"Pathfinding completed in {total_time:.2f} seconds")
     print(f"Summary saved to {summary_path}")
     return results
 
 def main():
+    # Start timing for overall execution
+    total_start_time = time.time()
+    
     # Define file paths
     data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
     routes_path = os.path.join(data_dir, "Evacuation_Routes_Tampa.geojson")
@@ -721,6 +698,10 @@ def main():
     components_path = os.path.join(data_dir, "graph_components.png")
     results_dir = os.path.join(data_dir, "results")
     graph_pickle_path = os.path.join(data_dir, "evacuation_graph.pickle")
+    
+    # Track graph preparation time
+    graph_prep_time = 0
+    graph_prep_start = time.time()
     
     # Check if pickle exists and load it
     if os.path.exists(graph_pickle_path):
@@ -740,8 +721,26 @@ def main():
         # Save the newly created graph
         save_graph_to_pickle(G, graph_pickle_path)
     
+    graph_prep_time = time.time() - graph_prep_start
+    
+    # Start timing pathfinding process
+    pathfinding_start = time.time()
+    
     # Process all centroids and find paths
-    process_all_centroids(G, centroids_gdf, results_dir)
+    results = process_all_centroids(G, centroids_gdf, results_dir)
+    
+    pathfinding_time = time.time() - pathfinding_start
+    total_time = time.time() - total_start_time
+    
+    # Add runtime information to the summary file
+    summary_path = os.path.join(results_dir, "evacuation_summary.txt")
+    with open(summary_path, 'a') as f:
+        f.write("\n\nPerformance Summary\n")
+        f.write("=================\n")
+        f.write(f"Graph Preparation Time: {graph_prep_time:.2f} seconds ({graph_prep_time/60:.2f} minutes)\n")
+        f.write(f"Pathfinding Time: {pathfinding_time:.2f} seconds ({pathfinding_time/60:.2f} minutes)\n")
+        f.write(f"Total Run Time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)\n")
+        f.write(f"Average Time Per Centroid: {pathfinding_time/len(centroids_gdf):.2f} seconds\n")
 
 if __name__ == "__main__":
     main()
