@@ -1,51 +1,84 @@
-Time-Phased Evacuation Analysis (OR-Tools)
-======================================
+Time-Phased Evacuation Analysis (Flow Rate Only)
+===========================================
 
 Total Population: 1,483,281
 Evacuation Phases: 12
-Total Evacuation Time: 75.63 hours (4537.5 minutes)
+Total Evacuation Time: 120.40 hours (7224.2 minutes)
 
 Phase-by-Phase Analysis:
 =======================
 
-Phase 1: No feasible flow found
-  Estimated evacuation time: 14.34 hours (rough estimate)
+Phase 1:
+  Population: 286,718
+  Evacuation time: 10.62 hours (637.1 minutes)
+  Bottleneck flow rate: 27,000 people/hour
+  Bottleneck road type: TERMINAL_CONNECTOR
 
-Phase 2: No feasible flow found
-  Estimated evacuation time: 11.27 hours (rough estimate)
+Phase 2:
+  Population: 225,432
+  Evacuation time: 6.38 hours (382.9 minutes)
+  Bottleneck flow rate: 35,328 people/hour
+  Bottleneck road type: H
 
-Phase 3: No feasible flow found
-  Estimated evacuation time: 9.38 hours (rough estimate)
+Phase 3:
+  Population: 187,655
+  Evacuation time: 9.66 hours (579.8 minutes)
+  Bottleneck flow rate: 19,420 people/hour
+  Bottleneck road type: CONNECTOR
 
-Phase 4: No feasible flow found
-  Estimated evacuation time: 6.21 hours (rough estimate)
+Phase 4:
+  Population: 124,173
+  Evacuation time: 8.13 hours (487.6 minutes)
+  Bottleneck flow rate: 15,280 people/hour
+  Bottleneck road type: TERMINAL_CONNECTOR
 
-Phase 5: No feasible flow found
-  Estimated evacuation time: 5.83 hours (rough estimate)
+Phase 5:
+  Population: 116,577
+  Evacuation time: 8.05 hours (483.1 minutes)
+  Bottleneck flow rate: 14,478 people/hour
+  Bottleneck road type: H
 
-Phase 6: No feasible flow found
-  Estimated evacuation time: 5.64 hours (rough estimate)
+Phase 6:
+  Population: 112,748
+  Evacuation time: 8.01 hours (480.8 minutes)
+  Bottleneck flow rate: 14,069 people/hour
+  Bottleneck road type: TERMINAL_CONNECTOR
 
-Phase 7: No feasible flow found
-  Estimated evacuation time: 5.20 hours (rough estimate)
+Phase 7:
+  Population: 103,945
+  Evacuation time: 15.47 hours (928.3 minutes)
+  Bottleneck flow rate: 6,718 people/hour
+  Bottleneck road type: CONNECTOR
 
-Phase 8: No feasible flow found
-  Estimated evacuation time: 4.61 hours (rough estimate)
+Phase 8:
+  Population: 92,161
+  Evacuation time: 15.46 hours (927.5 minutes)
+  Bottleneck flow rate: 5,961 people/hour
+  Bottleneck road type: P
 
-Phase 9: No feasible flow found
-  Estimated evacuation time: 3.79 hours (rough estimate)
+Phase 9:
+  Population: 75,889
+  Evacuation time: 5.25 hours (314.7 minutes)
+  Bottleneck flow rate: 14,467 people/hour
+  Bottleneck road type: H
 
-Phase 10: No feasible flow found
-  Estimated evacuation time: 3.52 hours (rough estimate)
+Phase 10:
+  Population: 70,384
+  Evacuation time: 15.85 hours (950.8 minutes)
+  Bottleneck flow rate: 4,441 people/hour
+  Bottleneck road type: P
 
-Phase 11: No feasible flow found
-  Estimated evacuation time: 3.00 hours (rough estimate)
+Phase 11:
+  Population: 59,925
+  Evacuation time: 7.71 hours (462.7 minutes)
+  Bottleneck flow rate: 7,770 people/hour
+  Bottleneck road type: TERMINAL_CONNECTOR
 
 Phase 12:
   Population: 27,674
-  Evacuation time: 2.85 hours (170.7 minutes)
-  Bottleneck flow: 9,726 people/hour
-  Bottleneck road type: TERMINAL_CONNECTOR
+  Evacuation time: 9.82 hours (589.0 minutes)
+  Bottleneck flow rate: 2,818 people/hour
+  Bottleneck road type: P
 
 
 Detailed Population by Phase:

@@ -1006,7 +1006,7 @@ Road Types Used:
 
 Performance Summary
 =================
-Graph Preparation Time: 0.59 seconds (0.01 minutes)
-Pathfinding Time: 60.29 seconds (1.00 minutes)
-Total Run Time: 60.89 seconds (1.01 minutes)
-Average Time Per Centroid: 1.18 seconds
+Graph Preparation Time: 0.27 seconds (0.00 minutes)
+Pathfinding Time: 41.83 seconds (0.70 minutes)
+Total Run Time: 42.10 seconds (0.70 minutes)
+Average Time Per Centroid: 0.82 seconds
