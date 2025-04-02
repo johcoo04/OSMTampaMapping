@@ -21,15 +21,22 @@ def setup_logging(log_file_path):
     if log_dir and not os.path.exists(log_dir):
         os.makedirs(log_dir, exist_ok=True)
     
-    # Configure logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_file_path),
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
+    # Configure logging with two different formatters
+    file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    console_formatter = logging.Formatter('%(message)s')  # Only show the message for console
+    
+    # Create handlers
+    file_handler = logging.FileHandler(log_file_path)
+    file_handler.setFormatter(file_formatter)
+    
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(console_formatter)
+    
+    # Configure the root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
     
     logging.info(f"Logging started. Output will be saved to {log_file_path}")
 
