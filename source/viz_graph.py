@@ -21,7 +21,7 @@ def load_graph_from_pickle(pickle_path):
     log_print(f"Loaded graph with {len(G.nodes())} nodes and {len(G.edges())} edges")
     return G
 
-def visualize_terminals(G, output_path, figsize=(20, 20), dpi=300, label_terminals=True, label_centroids=True):
+def visualize_terminals(G, output_path, figsize=(20, 20), dpi=300, label_terminals=True, label_centroids=True, label_sinks=True):
     """
     Draw a graph with highlighted and labeled terminal nodes and centroids
     
@@ -32,6 +32,7 @@ def visualize_terminals(G, output_path, figsize=(20, 20), dpi=300, label_termina
         dpi: Resolution of the output image
         label_terminals: Whether to add text labels for terminal nodes
         label_centroids: Whether to add text labels for centroid nodes
+        label_sinks: Whether to add text labels for sink nodes
     """
     log_print("Creating terminal nodes visualization...")
     
@@ -116,6 +117,24 @@ def visualize_terminals(G, output_path, figsize=(20, 20), dpi=300, label_termina
         
         nx.draw_networkx_labels(G, pos, labels=centroid_labels,
                               font_size=8, font_color='darkblue', 
+                              bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', boxstyle='round,pad=0.2'))
+    
+    # Add labels to sink nodes
+    if label_sinks:
+        # Create a dictionary for sink labels with their ZIP codes
+        sink_labels = {}
+        for node in sink_nodes:
+            # Get ZIP code from node attributes
+            zip_code = G.nodes[node].get('zip_code', '')
+            capacity = G.nodes[node].get('capacity', '')
+            if zip_code:
+                label = f"{zip_code}"
+                if capacity:
+                    label += f"\n(cap: {capacity/1000:.0f}k)"
+                sink_labels[node] = label
+        
+        nx.draw_networkx_labels(G, pos, labels=sink_labels,
+                              font_size=9, font_color='darkgreen', 
                               bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', boxstyle='round,pad=0.2'))
     
     # Add a title and legend
