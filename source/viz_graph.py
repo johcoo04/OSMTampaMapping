@@ -21,9 +21,9 @@ def load_graph_from_pickle(pickle_path):
     log_print(f"Loaded graph with {len(G.nodes())} nodes and {len(G.edges())} edges")
     return G
 
-def visualize_terminals(G, output_path, figsize=(20, 20), dpi=300, label_terminals=True):
+def visualize_terminals(G, output_path, figsize=(20, 20), dpi=300, label_terminals=True, label_centroids=True):
     """
-    Draw a graph with highlighted and labeled terminal nodes
+    Draw a graph with highlighted and labeled terminal nodes and centroids
     
     Args:
         G: NetworkX graph
@@ -31,6 +31,7 @@ def visualize_terminals(G, output_path, figsize=(20, 20), dpi=300, label_termina
         figsize: Figure size as tuple (width, height) in inches
         dpi: Resolution of the output image
         label_terminals: Whether to add text labels for terminal nodes
+        label_centroids: Whether to add text labels for centroid nodes
     """
     log_print("Creating terminal nodes visualization...")
     
@@ -103,8 +104,22 @@ def visualize_terminals(G, output_path, figsize=(20, 20), dpi=300, label_termina
                               font_size=10, font_color='black', 
                               bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', boxstyle='round,pad=0.2'))
     
+    # Add labels to centroid nodes
+    if label_centroids:
+        # Create a dictionary for centroid labels with their ZIP codes
+        centroid_labels = {}
+        for node in centroid_nodes:
+            # Get ZIP code from node attributes
+            zip_code = G.nodes[node].get('zip_code', '')
+            if zip_code:
+                centroid_labels[node] = zip_code
+        
+        nx.draw_networkx_labels(G, pos, labels=centroid_labels,
+                              font_size=8, font_color='darkblue', 
+                              bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', boxstyle='round,pad=0.2'))
+    
     # Add a title and legend
-    plt.title("Tampa Evacuation Network with Terminal Nodes")
+    plt.title("Tampa Evacuation Network with Terminal Nodes and Centroids")
     
     # Create legend
     legend_elements = [
@@ -139,7 +154,7 @@ def main():
     
     # Load graph and visualize
     G = load_graph_from_pickle(pickle_path)
-    visualize_terminals(G, output_path)
+    visualize_terminals(G, output_path, label_terminals=True, label_centroids=True)
     
     log_print(f"Terminal node visualization saved to {output_path}")
 

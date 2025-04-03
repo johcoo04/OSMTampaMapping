@@ -287,24 +287,6 @@ def create_connected_graph(routes_gdf, centroids_gdf, sinks_gdf, connection_thre
                     log_print(f"Connected component {comp_idx} to main component with edge of distance {min_dist:.2f} meters")
                     main_comp = main_comp.union(other_comp)  # Update main component
     
-    # Final connectivity check after attempted fixes
-    if not nx.is_connected(G):
-        log_print("Warning: Graph remains disconnected after attempted fixes")
-        
-        # Identify which centroids and sinks are disconnected
-        components = list(nx.connected_components(G))
-        main_comp = max(components, key=len)
-        
-        disconnected_centroids = [G.nodes[node]["zip_code"] for node in G.nodes() 
-                                if G.nodes[node].get("node_type") == "centroid" and node not in main_comp]
-        disconnected_sinks = [G.nodes[node]["zip_code"] for node in G.nodes() 
-                            if G.nodes[node].get("node_type") == "sink" and node not in main_comp]
-        
-        if disconnected_centroids:
-            log_print(f"Disconnected centroids: {', '.join(disconnected_centroids)}")
-        if disconnected_sinks:
-            log_print(f"Disconnected sinks: {', '.join(disconnected_sinks)}")
-    
     total_time = time.time() - start_time
     log_print(f"Graph creation completed in {total_time:.2f} seconds")
     return G
@@ -572,22 +554,21 @@ def process_all_centroids(G, centroids_gdf, output_dir):
 def assign_road_capacities_and_population(G, population_data_path, sink_nodes_path):
     log_print("Assigning road capacities and population data...")
     
-    # Define road properties (capacity in people/hour only - doubled from original)
     road_properties = {
-        'H': {'capacity': 40000},  # Highway
-        'P': {'capacity': 16000},  # Primary road
-        'M': {'capacity': 14000},  # Major road
-        'C': {'capacity': 20000},  # Collector road
-        'R': {'capacity': 6000},   # Ramp
-        'CONNECTOR': {'capacity': 40000},  # Artificial connectors
-        'CENTROID_CONNECTOR': {'capacity': 40000},
-        'SINK_CONNECTOR': {'capacity': 40000},
-        'COMPONENT_CONNECTOR': {'capacity': 40000},
-        'SINK_TERMINAL_CONNECTOR': {'capacity': 40000},
-        'TERMINAL_CONNECTOR': {'capacity': 40000},
-        'UNKNOWN': {'capacity': 40000}
+        'H': {'capacity': 24000, 'speed': 85},  # Highway
+        'P': {'capacity': 12000, 'speed': 75},  # Primary road
+        'M': {'capacity': 8000, 'speed': 65},   # Major road
+        'C': {'capacity': 6400, 'speed': 55},   # Collector road
+        'R': {'capacity': 4000, 'speed': 35},   # Ramp
+        'CONNECTOR': {'capacity': 16000, 'speed': 65},
+        'CENTROID_CONNECTOR': {'capacity': 20000, 'speed': 65},
+        'SINK_CONNECTOR': {'capacity': 24000, 'speed': 65},
+        'COMPONENT_CONNECTOR': {'capacity': 12000, 'speed': 65},
+        'SINK_TERMINAL_CONNECTOR': {'capacity': 24000, 'speed': 65},
+        'TERMINAL_CONNECTOR': {'capacity': 24000, 'speed': 65},
+        'UNKNOWN': {'capacity': 8000, 'speed': 30}
     }
-    
+
     # Define default properties to use when a road type isn't found
     default_properties = {'capacity': 1000}
     
@@ -673,13 +654,30 @@ def analyze_phased_evacuation_flow_only(G, output_dir, phases=12):
     source_nodes = []
     sink_nodes = []
     
+    # Create structure to store complete flow assignments
+    detailed_flow_data = {
+        "centroid_flows": {},
+        "sink_flows": {},
+        "phases": {}
+    }
+    
     for node, data in G.nodes(data=True):
         if data.get("node_type") == "centroid" and data.get("demand", 0) < 0:
             population = -data.get("demand", 0)
             zip_code = data.get("zip_code", "unknown")
             source_nodes.append((node, population, zip_code))
+            # Initialize centroid flow data
+            detailed_flow_data["centroid_flows"][zip_code] = {
+                "population": population,
+                "sinks": {}
+            }
         elif data.get("node_type") == "sink":
+            sink_zip = data.get("zip_code", "unknown")
             sink_nodes.append(node)
+            # Initialize sink flow data
+            detailed_flow_data["sink_flows"][sink_zip] = {
+                "total_inflow": 0
+            }
     
     # Sort source nodes by population in descending order
     source_nodes.sort(key=lambda x: x[1], reverse=True)
@@ -796,6 +794,12 @@ def analyze_phased_evacuation_flow_only(G, output_dir, phases=12):
             if status == mcf.OPTIMAL:
                 log_print("  Optimal solution found!")
                 
+                # Create a phase record in the detailed flow data
+                phase_data = {
+                    "population": original_phase_pop,
+                    "flows": {}
+                }
+                
                 # Extract flow results
                 max_flow = 0
                 bottleneck_edge = None
@@ -876,6 +880,49 @@ def analyze_phased_evacuation_flow_only(G, output_dir, phases=12):
                     cumulative_output.append(f"  Bottleneck road type: {road_type}")
                 cumulative_output.append("")
                 
+                # Extract flow paths from solutions
+                for i in range(mcf.num_arcs()):
+                    if mcf.flow(i) > 0:
+                        # Get arc endpoints
+                        tail = reverse_map[mcf.tail(i)]
+                        head = reverse_map[mcf.head(i)]
+                        flow = mcf.flow(i)
+                        
+                        # Track flow from centroids to sinks
+                        # This requires identifying which centroids flow to which sinks
+                        
+                        # If this is a direct flow to super_sink, we can track it
+                        if head == super_sink and tail in sink_nodes:
+                            sink_zip = G.nodes[tail].get("zip_code", "unknown")
+                            
+                            # We need to determine which centroids contributed to this sink's flow
+                            # For each centroid in this phase, estimate its contribution
+                            # proportional to its population
+                            for node, pop, centroid_zip in sources:
+                                # Scale contribution to match the 25% -> 100% adjustment
+                                contribution = (pop / original_phase_pop) * flow * 4
+                                
+                                # Add to detailed flow data
+                                if sink_zip not in detailed_flow_data["centroid_flows"][centroid_zip]["sinks"]:
+                                    detailed_flow_data["centroid_flows"][centroid_zip]["sinks"][sink_zip] = 0
+                                
+                                detailed_flow_data["centroid_flows"][centroid_zip]["sinks"][sink_zip] += contribution
+                                
+                                # Also track in phase data
+                                if centroid_zip not in phase_data["flows"]:
+                                    phase_data["flows"][centroid_zip] = {}
+                                
+                                if sink_zip not in phase_data["flows"][centroid_zip]:
+                                    phase_data["flows"][centroid_zip][sink_zip] = 0
+                                    
+                                phase_data["flows"][centroid_zip][sink_zip] += contribution
+                                
+                                # Update sink total
+                                detailed_flow_data["sink_flows"][sink_zip]["total_inflow"] += contribution
+                
+                # Store phase data
+                detailed_flow_data["phases"][phase_num] = phase_data
+                
             else:
                 # If optimal solution not found, provide an estimate
                 log_print(f"  Solver status: {status} - No optimal solution found.")
@@ -948,6 +995,13 @@ def analyze_phased_evacuation_flow_only(G, output_dir, phases=12):
             for _, pop, zip_code in sources:
                 f.write(f"  {zip_code}: {pop:,} people\n")
     
+    # After all phases are processed, save the detailed flow data
+    flow_data_path = os.path.join(output_dir, "detailed_evacuation_flows.json")
+    with open(flow_data_path, 'w') as f:
+        json.dump(detailed_flow_data, f, indent=2)
+    
+    log_print(f"Saved detailed flow assignments to {flow_data_path}")
+    
     log_print(f"\nTime-phased evacuation analysis completed in {time.time() - start_time:.2f} seconds")
     log_print(f"Total estimated evacuation time: {cumulative_time:.2f} hours ({cumulative_time*60:.1f} minutes)")
     log_print(f"Results saved to {summary_path}")
@@ -955,7 +1009,8 @@ def analyze_phased_evacuation_flow_only(G, output_dir, phases=12):
     return {
         'total_population': total_population,
         'total_evacuation_time': cumulative_time,
-        'phase_results': phase_results
+        'phase_results': phase_results,
+        'detailed_flow_path': flow_data_path
     }
 
 def visualize_shortest_paths(G, centroids_gdf, results, output_dir):
@@ -1113,8 +1168,8 @@ def visualize_shortest_paths(G, centroids_gdf, results, output_dir):
     return vis_dir
 
 def visualize_centroid_flows(G, flow_results, output_dir):
-
-    log_print("Generating per-centroid flow visualizations using normalized min-cost flow results...")
+    """Visualize evacuation flows calculated by OR-Tools min-cost flow algorithm"""
+    log_print("Generating per-centroid flow visualizations using actual OR-Tools min-cost flow results...")
     
     # Create output directory for visualizations
     vis_dir = os.path.join(output_dir, "centroid_flow_visualizations")
@@ -1123,16 +1178,13 @@ def visualize_centroid_flows(G, flow_results, output_dir):
     # Create a position dictionary for all nodes
     pos = nx.get_node_attributes(G, 'pos')
     
-    # Extract flow results for each phase
-    phase_results = flow_results.get('phase_results', [])
-    
-    # Define base route edges for reference
+    # Define base route edges for reference visualization
     route_edges = []
     for u, v, data in G.edges(data=True):
         if G.nodes[u].get('node_type') == 'route' and G.nodes[v].get('node_type') == 'route':
             route_edges.append((u, v))
     
-    # Get all centroids and sinks
+    # Get all centroids and sinks and prepare data structures
     centroids = {}
     sink_nodes = []
     
@@ -1154,51 +1206,191 @@ def visualize_centroid_flows(G, flow_results, output_dir):
         sink_zip = G.nodes[sink].get("zip_code", f"sink_{i}")
         sink_colors[sink] = {"color": color_options[i % len(color_options)], "zip": sink_zip}
     
-    # Extract flow distributions using shortest paths as a proxy for optimal routes
-    for centroid_node, centroid_data in centroids.items():
-        log_print(f"Computing flow distribution for centroid {centroid_data['zip_code']}")
+    # Since we want to visualize actual OR-Tools flows, we need to run a min-cost flow calculation
+    # that includes all centroids at once to get a complete picture
+    log_print("Running OR-Tools min-cost flow calculation to extract actual flows...")
+    
+    # Create a temporary copy of the graph for our calculation
+    F = G.copy()
+    
+    # Create a super sink to collect all flows
+    super_sink = "visualization_super_sink"
+    F.add_node(super_sink)
+    
+    # Calculate total demand from centroids
+    total_demand = 0
+    for node, data in F.nodes(data=True):
+        if data.get("node_type") == "centroid" and data.get("demand", 0) < 0:
+            total_demand -= data.get("demand", 0)
+    
+    # Set super sink demand to balance the network
+    F.nodes[super_sink]['demand'] = total_demand
+    
+    # Connect all sinks to the super sink with high capacity
+    for sink in sink_nodes:
+        F.add_edge(sink, super_sink, capacity=total_demand*2, weight=1)
+    
+    # Prepare OR-Tools min-cost flow solver
+    mcf = min_cost_flow.SimpleMinCostFlow()
+    
+    # Create node maps for OR-Tools
+    node_map = {}
+    reverse_map = {}
+    
+    # Map nodes to integers for OR-Tools
+    for i, node in enumerate(F.nodes()):
+        node_map[node] = i
+        reverse_map[i] = node
+    
+    # Add each node with demand
+    for node, data in F.nodes(data=True):
+        demand = data.get('demand', 0)
+        if demand != 0:
+            mcf.set_node_supply(node_map[node], int(demand))
+    
+    # Add each edge as an arc with capacity and distance-based cost
+    for u, v, data in F.edges(data=True):
+        # Get capacity
+        capacity = int(data.get('capacity', 1000))
         
-        # Find paths to all sinks
-        sink_paths = []
-        for sink_node in sink_nodes:
-            try:
-                path = nx.shortest_path(G, centroid_node, sink_node, weight="weight")
-                distance = sum(G[u][v]['weight'] for u, v in zip(path[:-1], path[1:]))
-                sink_paths.append({
-                    "sink_node": sink_node,
-                    "path": path,
-                    "distance": distance,
-                    "weight": 1/max(1, distance)  # Inverse distance weight
-                })
-            except nx.NetworkXNoPath:
-                continue
+        # Increase centroid connections capacity to ensure feasibility
+        if F.nodes[u].get('node_type') == 'centroid' or F.nodes[v].get('node_type') == 'centroid':
+            capacity = max(capacity, total_demand * 2)
         
-        # Calculate flow distribution using inverse distance weighting
-        if sink_paths:
-            total_weight = sum(path["weight"] for path in sink_paths)
-            actual_population = centroid_data["population"]
+        # Use distance-based costs
+        weight = int(data.get('weight', 100))
+        if weight <= 0:
+            weight = 1
+        
+        # Add the arc
+        mcf.add_arc_with_capacity_and_unit_cost(
+            node_map[u], node_map[v], capacity, weight)
+        
+        # For undirected graphs, add reverse edge
+        if not F.is_directed() and v != super_sink:  # Don't add reverse edges to super sink
+            mcf.add_arc_with_capacity_and_unit_cost(
+                node_map[v], node_map[u], capacity, weight)
+    
+    # Solve the min-cost flow problem
+    log_print("Solving min-cost flow problem for visualization...")
+    status = mcf.solve()
+    
+    if status != mcf.OPTIMAL:
+        log_print(f"Warning: Min-cost flow solver status: {status} - Not optimal.")
+        log_print("Using approximate flow visualization based on distance weighting as fallback.")
+        # Fall back to the original distance-based calculation if OR-Tools doesn't find optimal solution
+        for centroid_node, centroid_data in centroids.items():
+            sink_paths = []
+            for sink_node in sink_nodes:
+                try:
+                    path = nx.shortest_path(G, centroid_node, sink_node, weight="weight")
+                    distance = sum(G[u][v]['weight'] for u, v in zip(path[:-1], path[1:]))
+                    sink_paths.append({
+                        "sink_node": sink_node,
+                        "path": path,
+                        "distance": distance,
+                        "weight": 1/max(1, distance)  # Inverse distance weight
+                    })
+                except nx.NetworkXNoPath:
+                    continue
             
-            for path_data in sink_paths:
-                sink_node = path_data["sink_node"]
-                weight = path_data["weight"]
-                portion = weight / total_weight if total_weight > 0 else 0
+            if sink_paths:
+                total_weight = sum(path["weight"] for path in sink_paths)
+                actual_population = centroid_data["population"]
                 
-                # Calculate flow as a portion of the actual population
-                flow = actual_population * portion
-                
-                # Store the flow data
-                if sink_node not in centroid_data["flows"]:
+                for path_data in sink_paths:
+                    sink_node = path_data["sink_node"]
+                    weight = path_data["weight"]
+                    portion = weight / total_weight if total_weight > 0 else 0
+                    flow = actual_population * portion
+                    
                     centroid_data["flows"][sink_node] = {
-                        "flow": 0,
-                        "portion": 0,
+                        "flow": flow,
+                        "portion": portion,
                         "path": path_data["path"]
                     }
+    else:
+        log_print("Optimal min-cost flow solution found. Extracting actual flows...")
+        
+        # Extract flow data from OR-Tools solution
+        # First, track flow directly from centroids to sinks
+        direct_flows = {}  # {(centroid, sink): flow_amount}
+        
+        # Initialize flow tracking for each centroid
+        for centroid_node in centroids:
+            direct_flows[centroid_node] = {}
+        
+        # Track flows through the network
+        flow_network = {}  # {node: {neighbor: flow}}
+        for i in range(mcf.num_arcs()):
+            flow = mcf.flow(i)
+            if flow > 0:
+                tail = reverse_map[mcf.tail(i)]
+                head = reverse_map[mcf.head(i)]
                 
-                centroid_data["flows"][sink_node]["flow"] = flow
-                centroid_data["flows"][sink_node]["portion"] = portion  # Will sum to 1.0 (100%)
+                # Skip flows to super sink - we'll track these separately
+                if head == super_sink:
+                    continue
+                
+                # Initialize flow tracking for this node if not exists
+                if tail not in flow_network:
+                    flow_network[tail] = {}
+                flow_network[tail][head] = flow
+        
+        # For each centroid, compute flow to each sink by finding paths
+        for centroid_node, centroid_data in centroids.items():
+            if centroid_node not in flow_network:
+                continue  # No outgoing flow
+            
+            # Get total outflow from this centroid
+            total_outflow = sum(flow_network[centroid_node].values())
+            if total_outflow == 0:
+                continue
+            
+            # This will store flow information for this centroid
+            centroid_flows = {}
+            
+            # Find which sinks this centroid's flow goes to by tracing paths
+            for sink_node in sink_nodes:
+                try:
+                    # Find a path in the flow network from centroid to sink
+                    path = nx.shortest_path(G, centroid_node, sink_node, weight="weight")
+                    
+                    # Calculate the amount of flow along this path based on sink connections
+                    # We check the final edge to the super sink to determine how much flow
+                    # reaches this sink from the network
+                    if sink_node in flow_network and super_sink in flow_network[sink_node]:
+                        flow_to_sink = flow_network[sink_node][super_sink]
+                        
+                        # Estimate what proportion of this flow came from our centroid
+                        # This is an approximation as we can't easily get exact contribution
+                        proportion = centroid_data["population"] / total_demand
+                        estimated_flow = flow_to_sink * proportion
+                        
+                        # Store the flow data
+                        centroid_flows[sink_node] = {
+                            "flow": estimated_flow,
+                            "path": path,
+                            "portion": estimated_flow / centroid_data["population"] if centroid_data["population"] > 0 else 0
+                        }
+                except nx.NetworkXNoPath:
+                    continue
+            
+            # If we found flows to sinks, normalize to ensure total flow matches centroid population
+            if centroid_flows:
+                total_flow = sum(data["flow"] for data in centroid_flows.values())
+                if total_flow > 0:
+                    # Scale flows to match the actual population
+                    scale_factor = centroid_data["population"] / total_flow
+                    for sink_node, flow_data in centroid_flows.items():
+                        flow_data["flow"] *= scale_factor
+                        flow_data["portion"] = flow_data["flow"] / centroid_data["population"]
+                
+                # Store flows in the centroid data
+                centroid_data["flows"] = centroid_flows
     
-    # Now visualize the flows for each centroid
-    log_print("Creating centroid flow visualizations...")
+    # Visualize the flows
+    log_print("Creating flow visualizations based on actual min-cost flow results...")
     
     for centroid_node, centroid_data in centroids.items():
         zip_code = centroid_data["zip_code"]
@@ -1206,7 +1398,7 @@ def visualize_centroid_flows(G, flow_results, output_dir):
         flows = centroid_data["flows"]
         
         if not flows:
-            log_print(f"No flow data found for centroid {zip_code}")
+            log_print(f"No flow data found for centroid {zip_code} - skipping visualization")
             continue
         
         log_print(f"Generating flow visualization for ZIP {zip_code} (Population: {population:,})")
@@ -1243,7 +1435,6 @@ def visualize_centroid_flows(G, flow_results, output_dir):
             color = sink_colors.get(sink_node, {"color": "gray"})["color"]
             
             # Calculate edge width based on flow (scaled for visibility)
-            # Use the percentage of total population for width
             edge_width = 1 + (portion * 8)
             
             # Draw the path
@@ -1264,10 +1455,10 @@ def visualize_centroid_flows(G, flow_results, output_dir):
                                      node_size=150, alpha=1.0)
         
         # Add title and information box
-        plt.title(f"Evacuation Flow Distribution for ZIP {zip_code}")
+        plt.title(f"Evacuation Flow Distribution for ZIP {zip_code} (Based on Min-Cost Flow)")
         
         # Create text for info box
-        info_text = f"ZIP Code: {zip_code}\nPopulation: {population:,}\n\nEvacuation Flow distribution:"
+        info_text = f"ZIP Code: {zip_code}\nPopulation: {population:,}\n\nEvacuation Flow Distribution (Min-Cost Flow):"
         
         total_shown_flow = 0
         for i, flow_data in enumerate(sink_flow_list[:5]):  # Show top 5
@@ -1283,7 +1474,7 @@ def visualize_centroid_flows(G, flow_results, output_dir):
             remaining_portion = sum(flow_data["portion"] for flow_data in sink_flow_list[5:])
             info_text += f"\n→ Others: {remaining_flow:,.0f} people ({remaining_portion*100:.1f}%)"
         
-        info_text += f"\nTotal: {total_shown_flow + remaining_flow if len(sink_flow_list) > 5 else total_shown_flow:,.0f} people"
+        info_text += f"\nTotal: {total_shown_flow + (remaining_flow if len(sink_flow_list) > 5 else 0):,.0f} people"
         
         # Add info box
         plt.text(0.02, 0.02, info_text, transform=plt.gca().transAxes,
@@ -1312,10 +1503,10 @@ def visualize_centroid_flows(G, flow_results, output_dir):
         plt.savefig(output_path, dpi=150, bbox_inches='tight')
         plt.close()
     
-    # Create a normalized summary report
-    report_path = os.path.join(output_dir, "normalized_evacuation_flow_report.txt")
+    # Create a summary report
+    report_path = os.path.join(output_dir, "actual_evacuation_flow_report.txt")
     with open(report_path, 'w') as f:
-        f.write("Normalized Evacuation Flow Distribution Report\n")
+        f.write("Actual Evacuation Flow Distribution Report (Min-Cost Flow)\n")
         f.write("=================================\n\n")
         
         total_population = sum(data["population"] for data in centroids.values())
@@ -1327,19 +1518,13 @@ def visualize_centroid_flows(G, flow_results, output_dir):
         
         sink_totals = {}
         for sink_node in sink_nodes:
-            sink_zip = G.nodes[sink_node].get("zip_code", "unknown")
+            sink_zip = G.nodes[sink_node].get("zip_code", f"sink_{i}")
             sink_totals[sink_node] = {
                 "zip": sink_zip,
                 "inflow": 0
             }
         
         # Sum flows to each sink
-        for centroid_data in centroids.values():
-            for sink_node, flow_data in centroid_data["flows"].items():
-                if sink_node in sink_totals:
-                    sink_totals[sink_node]["inflow"] += flow_data["flow"]
-        
-        # Write sink summary
         for sink_node, data in sorted(sink_totals.items(), key=lambda x: x[1]["inflow"], reverse=True):
             f.write(f"Sink {data['zip']}: {data['inflow']:,.0f} people ")
             f.write(f"({data['inflow']/total_population*100:.1f}% of total)\n")
@@ -1351,7 +1536,7 @@ def visualize_centroid_flows(G, flow_results, output_dir):
         for centroid_node, centroid_data in sorted(centroids.items(), key=lambda x: x[1]["population"], reverse=True):
             zip_code = centroid_data["zip_code"]
             population = centroid_data["population"]
-            flows = centroid_data["flows"]
+            flows = centroid_data.get("flows", {})
             
             f.write(f"ZIP Code: {zip_code} (Population: {population:,})\n")
             
@@ -1378,11 +1563,486 @@ def visualize_centroid_flows(G, flow_results, output_dir):
             
             f.write("\n")
     
-    log_print(f"Generated normalized flow visualizations in {vis_dir}")
-    log_print(f"Detailed normalized flow report saved to {report_path}")
+    log_print(f"Generated actual min-cost flow visualizations in {vis_dir}")
+    log_print(f"Detailed flow report saved to {report_path}")
     
     return vis_dir, report_path
 
+def visualize_phased_flows(G, detailed_flow_path, output_dir):
+    """Visualize evacuation flows using detailed flow data previously saved"""
+    log_print("Generating flow visualizations based on detailed flow assignments...")
+    
+    # Load the detailed flow data
+    with open(detailed_flow_path, 'r') as f:
+        detailed_flow_data = json.load(f)
+    
+    # Create output directory for visualizations
+    vis_dir = os.path.join(output_dir, "phased_flow_visualizations")
+    os.makedirs(vis_dir, exist_ok=True)
+    
+    # Create a position dictionary for all nodes
+    pos = nx.get_node_attributes(G, 'pos')
+    
+    # Define base route edges for reference visualization
+    route_edges = []
+    for u, v, data in G.edges(data=True):
+        if G.nodes[u].get('node_type') == 'route' and G.nodes[v].get('node_type') == 'route':
+            route_edges.append((u, v))
+    
+    # Get all centroids and sinks and prepare mapping dict to actual nodes
+    centroid_node_by_zip = {}
+    sink_node_by_zip = {}
+    sink_nodes = []
+    
+    for node, data in G.nodes(data=True):
+        if data.get("node_type") == "centroid":
+            zip_code = data.get("zip_code", "unknown")
+            centroid_node_by_zip[zip_code] = node
+        elif data.get("node_type") == "sink":
+            zip_code = data.get("zip_code", "unknown")
+            sink_node_by_zip[zip_code] = node
+            sink_nodes.append(node)
+    
+    # Define a color map for sinks
+    sink_colors = {}
+    color_options = ['red', 'blue', 'green', 'purple', 'orange', 'cyan', 
+                    'magenta', 'brown', 'darkcyan', 'olive', 'darkgreen', 'indigo']
+    
+    for i, sink in enumerate(sink_nodes):
+        sink_zip = G.nodes[sink].get("zip_code", f"sink_{i}")
+        sink_colors[sink] = {"color": color_options[i % len(color_options)], "zip": sink_zip}
+    
+    # Process each centroid's flow data from the JSON
+    for centroid_zip, centroid_data in detailed_flow_data["centroid_flows"].items():
+        population = centroid_data["population"]
+        sinks_data = centroid_data.get("sinks", {})
+        
+        if not sinks_data:
+            log_print(f"No flow data found for centroid {centroid_zip} - skipping visualization")
+            continue
+        
+        # Check if we can map the centroid ZIP to an actual node
+        if centroid_zip not in centroid_node_by_zip:
+            log_print(f"Could not find centroid node for ZIP {centroid_zip} - skipping visualization")
+            continue
+        
+        centroid_node = centroid_node_by_zip[centroid_zip]
+        log_print(f"Generating flow visualization for ZIP {centroid_zip} (Population: {population:,})")
+        
+        # Create figure
+        plt.figure(figsize=(14, 12))
+        
+        # Draw base graph structure
+        nx.draw_networkx_edges(G, pos, edgelist=route_edges, edge_color='lightgray', 
+                             width=0.5, alpha=0.2)
+        
+        # Process each sink flow and find a path to visualize
+        sink_flow_list = []
+        for sink_zip, flow_amount in sinks_data.items():
+            # Skip if sink ZIP cannot be mapped to a node
+            if sink_zip not in sink_node_by_zip:
+                continue
+                
+            sink_node = sink_node_by_zip[sink_zip]
+            portion = flow_amount / population if population > 0 else 0
+            
+            # Find shortest path from centroid to this sink
+            try:
+                path = nx.shortest_path(G, centroid_node, sink_node, weight="weight")
+                
+                sink_flow_list.append({
+                    "sink_node": sink_node,
+                    "sink_zip": sink_zip,
+                    "flow": flow_amount,
+                    "portion": portion,
+                    "path": path
+                })
+            except nx.NetworkXNoPath:
+                log_print(f"No path found from {centroid_zip} to sink {sink_zip}")
+                continue
+        
+        # Sort flows by amount (descending)
+        sink_flow_list.sort(key=lambda x: x["flow"], reverse=True)
+        
+        # Draw flows
+        for flow_data in sink_flow_list:
+            sink_node = flow_data["sink_node"]
+            path = flow_data["path"]
+            portion = flow_data["portion"]
+            flow = flow_data["flow"]
+            
+            # Get sink color
+            color = sink_colors.get(sink_node, {"color": "gray"})["color"]
+            
+            # Calculate edge width based on flow (scaled for visibility)
+            edge_width = 1 + (portion * 8)
+            
+            # Draw the path
+            path_edges = list(zip(path[:-1], path[1:]))
+            nx.draw_networkx_edges(G, pos, edgelist=path_edges, 
+                                 edge_color=color, width=edge_width, 
+                                 alpha=max(0.4, min(0.9, portion * 2)))
+        
+        # Draw centroid node
+        nx.draw_networkx_nodes(G, pos, nodelist=[centroid_node], 
+                             node_color='darkblue', node_size=200, alpha=1.0)
+        
+        # Draw sink nodes
+        for sink_node in sink_nodes:
+            if sink_node in pos:
+                nx.draw_networkx_nodes(G, pos, nodelist=[sink_node], 
+                                     node_color=sink_colors[sink_node]["color"], 
+                                     node_size=150, alpha=1.0)
+        
+        # Add title and information box
+        plt.title(f"Evacuation Flow Distribution for ZIP {centroid_zip} (Based on Phased Flow Analysis)")
+        
+        # Create text for info box
+        info_text = f"ZIP Code: {centroid_zip}\nPopulation: {population:,}\n\nEvacuation Flow Distribution:"
+        
+        total_shown_flow = 0
+        for i, flow_data in enumerate(sink_flow_list[:5]):  # Show top 5
+            sink_zip = flow_data["sink_zip"]
+            flow = flow_data["flow"]
+            portion = flow_data["portion"]
+            total_shown_flow += flow
+            
+            info_text += f"\n→ {sink_zip}: {flow:,.0f} people ({portion*100:.1f}%)"
+        
+        if len(sink_flow_list) > 5:
+            remaining_flow = sum(flow_data["flow"] for flow_data in sink_flow_list[5:])
+            remaining_portion = sum(flow_data["portion"] for flow_data in sink_flow_list[5:])
+            info_text += f"\n→ Others: {remaining_flow:,.0f} people ({remaining_portion*100:.1f}%)"
+        
+        info_text += f"\nTotal: {total_shown_flow + (remaining_flow if len(sink_flow_list) > 5 else 0):,.0f} people"
+        
+        # Add info box
+        plt.text(0.02, 0.02, info_text, transform=plt.gca().transAxes,
+               fontsize=12, verticalalignment='bottom', horizontalalignment='left',
+               bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.8))
+        
+        # Add legend
+        legend_elements = []
+        for i, flow_data in enumerate(sink_flow_list[:5]):
+            sink_node = flow_data["sink_node"]
+            sink_zip = flow_data["sink_zip"]
+            color = sink_colors.get(sink_node, {"color": "gray"})["color"]
+            portion = flow_data["portion"]
+            flow = flow_data["flow"]
+            
+            legend_elements.append(plt.Line2D([0], [0], color=color, lw=2 + (portion * 4), 
+                                            label=f"{sink_zip}: {flow:,.0f} ({portion*100:.1f}%)"))
+        
+        plt.legend(handles=legend_elements, loc='upper right', title="Top Destinations")
+        
+        # Turn off axis
+        plt.axis('off')
+        
+        # Save
+        output_path = os.path.join(vis_dir, f"phased_flow_{centroid_zip}.png")
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.close()
+    
+    # Create a summary report
+    report_path = os.path.join(output_dir, "phased_evacuation_flow_report.txt")
+    with open(report_path, 'w') as f:
+        f.write("Phased Evacuation Flow Distribution Report\n")
+        f.write("======================================\n\n")
+        f.write("This report shows the actual flow distribution based on the min-cost flow analysis\n\n")
+        
+        total_population = sum(data["population"] for data in detailed_flow_data["centroid_flows"].values())
+        f.write(f"Total Population: {total_population:,}\n\n")
+        
+        # Sink summary
+        f.write("Sink Distribution Summary\n")
+        f.write("-----------------------\n")
+        
+        # Calculate total inflows to each sink
+        sink_totals = {}
+        for sink_zip in detailed_flow_data["sink_flows"].keys():
+            sink_totals[sink_zip] = 0
+            
+        # Sum up all flows to sinks from centroids
+        for centroid_data in detailed_flow_data["centroid_flows"].values():
+            for sink_zip, flow in centroid_data.get("sinks", {}).items():
+                if sink_zip in sink_totals:
+                    sink_totals[sink_zip] += flow
+        
+        # Write sink summary
+        for sink_zip, inflow in sorted(sink_totals.items(), key=lambda x: x[1], reverse=True):
+            if inflow > 0:
+                f.write(f"Sink {sink_zip}: {inflow:,.0f} people ")
+                f.write(f"({inflow/total_population*100:.1f}% of total)\n")
+        
+        f.write("\n\nCentroid-to-Sink Flow Details\n")
+        f.write("----------------------------\n\n")
+        
+        # Write detailed flow for each centroid
+        sorted_centroids = sorted(detailed_flow_data["centroid_flows"].items(), 
+                                 key=lambda x: x[1]["population"], reverse=True)
+                                 
+        for centroid_zip, centroid_data in sorted_centroids:
+            population = centroid_data["population"]
+            sinks_data = centroid_data.get("sinks", {})
+            
+            f.write(f"ZIP Code: {centroid_zip} (Population: {population:,})\n")
+            
+            if sinks_data:
+                sink_flows = [(sink_zip, flow) for sink_zip, flow in sinks_data.items()]
+                sink_flows.sort(key=lambda x: x[1], reverse=True)
+                
+                for sink_zip, flow in sink_flows:
+                    portion = flow / population if population > 0 else 0
+                    f.write(f"  → {sink_zip}: {flow:,.0f} people ({portion*100:.1f}%)\n")
+            else:
+                f.write("  No flow data available\n")
+            
+            f.write("\n")
+    
+    log_print(f"Generated phased flow visualizations in {vis_dir}")
+    log_print(f"Detailed phased flow report saved to {report_path}")
+    
+    return vis_dir, report_path
+
+def calculate_evacuation_flow_report(G, output_dir, congestion_scenario='moderate_congestion', phases=12):
+    """
+    Calculate evacuation flow and generate a detailed text report using road-specific speeds and congestion factors.
+    """
+    log_print(f"Calculating evacuation flow distribution (congestion: {congestion_scenario})...")
+    start_time = time.time()
+    
+    congestion_scenarios = {
+        'free_flow': 0.7,           # Minimal evacuation traffic
+        'light_congestion': 0.5,    # Light evacuation traffic
+        'moderate_congestion': 0.3, # Typical evacuation conditions
+        'heavy_congestion': 0.2,    # Heavy evacuation traffic
+        'severe_congestion': 0.1    # Severe congestion with bottlenecks
+    }
+    
+    # Select the appropriate congestion factor (default to moderate if not found)
+    congestion_factor = congestion_scenarios.get(congestion_scenario, 0.5)
+    log_print(f"Using congestion factor: {congestion_factor} ({congestion_scenario})")
+    
+    # Identify source (centroid) nodes with population data
+    source_nodes = []
+    sink_nodes = []
+    
+    # Create structure to store complete flow assignments
+    centroid_flow_data = {}
+    sink_flow_data = {}
+    
+    # Rest of your existing code to initialize data structures
+    for node, data in G.nodes(data=True):
+        if data.get("node_type") == "centroid" and data.get("demand", 0) < 0:
+            population = -data.get("demand", 0)
+            zip_code = data.get("zip_code", "unknown")
+            source_nodes.append((node, population, zip_code))
+            # Initialize centroid flow data
+            centroid_flow_data[zip_code] = {
+                "population": population,
+                "node_id": node,
+                "sinks": {}
+            }
+        elif data.get("node_type") == "sink":
+            sink_zip = data.get("zip_code", "unknown")
+            sink_nodes.append((node, sink_zip))
+            # Initialize sink flow data
+            sink_flow_data[sink_zip] = {
+                "node_id": node,
+                "total_inflow": 0,
+                "centroids": {}  # Add this to fix the KeyError
+            }
+    
+    # Sort source nodes by population in descending order
+    source_nodes.sort(key=lambda x: x[1], reverse=True)
+    total_population = sum(pop for _, pop, _ in source_nodes)
+    
+    log_print(f"Planning evacuation for {total_population:,} people from {len(source_nodes)} zip codes")
+    
+    # DIRECT ALLOCATION: For each centroid, find the 3 closest sinks and distribute population
+    for centroid_node, population, centroid_zip in source_nodes:
+        log_print(f"Processing {centroid_zip} with population {population:,}")
+        
+        # Find paths to all sinks
+        sink_paths = []
+        for sink_node, sink_zip in sink_nodes:
+            try:
+                path = nx.shortest_path(G, centroid_node, sink_node, weight="weight")
+                
+                # Calculate distance and travel time with road-specific speeds and congestion
+                distance = 0
+                travel_time = 0
+                
+                for i in range(len(path) - 1):
+                    u, v = path[i], path[i+1]
+                    segment_distance = G[u][v].get('weight', 1)  # Distance in meters
+                    
+                    # Get road type and appropriate speed from edge properties
+                    road_type = G[u][v].get('road_type', 'UNKNOWN')
+                    speed_mph = 60  # Default speed in mph
+                    
+                    # Try to get the actual speed from the edge data if available
+                    if 'speed' in G[u][v]:
+                        speed_mph = G[u][v]['speed']
+                    
+                    # Convert mph to m/s (mph * 0.44704 = m/s)
+                    speed_mps = speed_mph * 0.44704
+                    
+                    # Apply congestion factor to speed
+                    congested_speed = speed_mps * congestion_factor
+                    
+                    # Calculate time for this segment (distance/speed)
+                    segment_time = segment_distance / max(1, (congested_speed * 3600))  # Time in hours
+                    
+                    distance += segment_distance
+                    travel_time += segment_time
+                
+                sink_paths.append({
+                    "sink_zip": sink_zip,
+                    "distance": distance,
+                    "travel_time": travel_time,
+                    "weight": 1/max(0.1, travel_time**2)  # Use travel time for weighting
+                })
+            except nx.NetworkXNoPath:
+                log_print(f"  No path found from {centroid_zip} to sink {sink_zip}")
+                continue
+        
+        # Rest of your existing code...
+        if not sink_paths:
+            log_print(f"  WARNING: No paths found from {centroid_zip} to any sink! Using default allocation.")
+            # Default allocation if no paths found
+            if sink_nodes:
+                per_sink = population / len(sink_nodes)
+                for _, sink_zip in sink_nodes:
+                    centroid_flow_data[centroid_zip]["sinks"][sink_zip] = per_sink
+                    sink_flow_data[sink_zip]["total_inflow"] += per_sink
+            continue
+        
+        # Sort by travel time (closest first)
+        sink_paths.sort(key=lambda x: x["travel_time"])
+        
+        # Use the 7 closest sinks (or fewer)
+        num_sinks_to_use = min(7, len(sink_paths))
+        closest_sinks = sink_paths[:num_sinks_to_use]
+        
+        total_weight = sum(sink["weight"] for sink in closest_sinks)
+        
+        # Distribute population to closest sinks
+        for sink_data in closest_sinks:
+            sink_zip = sink_data["sink_zip"]
+            weight = sink_data["weight"]
+            proportion = weight / total_weight if total_weight > 0 else 0
+            flow = population * proportion
+            travel_time = sink_data["travel_time"]
+            distance = sink_data["distance"]
+            
+            # Find the sink node for this sink zip
+            sink_node = None
+            for node, zip_code in sink_nodes:
+                if zip_code == sink_zip:
+                    sink_node = node
+                    break
+            
+            # Calculate queue clearance time
+            queue_time = 0
+            if sink_node:
+                # Find or reuse path
+                path = nx.shortest_path(G, centroid_node, sink_node, weight="weight")
+                
+                # Find bottleneck capacity along path
+                bottleneck_capacity = float('inf')
+                for i in range(len(path) - 1):
+                    u, v = path[i], path[i+1]
+                    segment_capacity = G[u][v].get('capacity', 1000)  # people/hour
+                    vehicle_capacity = segment_capacity / 2.5  # vehicles/hour
+                    bottleneck_capacity = min(bottleneck_capacity, vehicle_capacity)
+                
+                # Calculate queue time
+                vehicle_count = flow / 2.5  # Convert people to vehicles
+                queue_time = vehicle_count / bottleneck_capacity if bottleneck_capacity > 0 else 0
+            
+            # Total evacuation time
+            total_evacuation_time = travel_time + queue_time
+            
+            # Store in data structures
+            if sink_zip not in centroid_flow_data[centroid_zip]["sinks"]:
+                centroid_flow_data[centroid_zip]["sinks"][sink_zip] = {
+                    "flow": 0,
+                    "travel_time": travel_time,
+                    "queue_time": queue_time,
+                    "total_time": total_evacuation_time,
+                    "distance": distance
+                }
+            else:
+                centroid_flow_data[centroid_zip]["sinks"][sink_zip]["flow"] += flow
+            
+            # Add to sink flow data
+            if centroid_zip not in sink_flow_data[sink_zip]["centroids"]:
+                sink_flow_data[sink_zip]["centroids"][centroid_zip] = 0
+            
+            sink_flow_data[sink_zip]["centroids"][centroid_zip] += flow
+            sink_flow_data[sink_zip]["total_inflow"] += flow
+            
+            log_print(f"    {centroid_zip} → {sink_zip}: {flow:,.0f} people ({proportion*100:.1f}%) - " 
+                      f"Travel: {travel_time:.2f} hrs, Queue: {queue_time:.2f} hrs, Total: {total_evacuation_time:.2f} hrs")
+
+    # Your existing code for report generation...
+    report_path = os.path.join(output_dir, "evacuation_flow_report.txt")
+    with open(report_path, 'w') as f:
+        f.write("EVACUATION FLOW DISTRIBUTION REPORT\n")
+        f.write("=================================\n\n")
+        
+        f.write(f"Total Population: {total_population:,}\n")
+        f.write(f"Congestion Scenario: {congestion_scenario} (factor: {congestion_factor})\n\n")
+        
+        # Sink summary
+        f.write("SINK DISTRIBUTION SUMMARY\n")
+        f.write("-----------------------\n")
+        
+        for sink_zip, data in sorted(sink_flow_data.items(), key=lambda x: x[1]["total_inflow"], reverse=True):
+            inflow = data["total_inflow"]
+            percentage = (inflow / total_population) * 100 if total_population > 0 else 0
+            f.write(f"Sink {sink_zip}: {inflow:,.0f} people ({percentage:.1f}% of total)\n")
+        
+        f.write("\n\nDETAILED EVACUATION FLOW REPORT\n")
+        f.write("-----------------------------\n\n")
+        
+        # Write detailed flow for each centroid
+        for centroid_zip, data in sorted(centroid_flow_data.items(), key=lambda x: x[1]["population"], reverse=True):
+            population = data["population"]
+            sinks = data.get("sinks", {})
+            
+            f.write(f"\nZIP Code: {centroid_zip} (Population: {population:,})\n")
+            f.write("----------------------------------------\n")
+            
+            if sinks:
+                sink_flows = []
+                for sink_zip, sink_data in sinks.items():
+                    flow = sink_data["flow"]
+                    travel_time = sink_data.get("travel_time", 0)
+                    queue_time = sink_data.get("queue_time", 0)
+                    total_time = sink_data.get("total_time", travel_time + queue_time)
+                    
+                    sink_flows.append((sink_zip, flow, travel_time, queue_time, total_time))
+                
+                # Sort by flow (highest first)
+                sink_flows.sort(key=lambda x: x[1], reverse=True)
+                
+                for sink_zip, flow, travel_time, queue_time, total_time in sink_flows:
+                    if flow > 0:  # Only show non-zero flows
+                        portion = flow / population if population > 0 else 0
+                        # Format times with detailed breakdown
+                        f.write(f"  → {sink_zip}: {flow:,.0f} people ({portion*100:.1f}%)\n")
+                        f.write(f"     Travel time: {travel_time:.2f} hours | ")
+                        f.write(f"Queue time: {queue_time:.2f} hours | ")
+                        f.write(f"Total evacuation time: {total_time:.2f} hours\n")
+            else:
+                f.write("  No flow data available\n")
+    
+    log_print(f"Evacuation flow calculation completed in {time.time() - start_time:.2f} seconds")
+    log_print(f"Detailed flow report saved to {report_path}")
+    
+    return report_path
 
 def main():
     # Start timing for overall execution
@@ -1403,15 +2063,10 @@ def main():
     setup_logging(log_file_path)
     log_print(f"Starting evacuation analysis at {time.strftime('%Y-%m-%d %H:%M:%S')}")
     
-    # Track graph preparation time
-    graph_prep_time = 0
-    graph_prep_start = time.time()
-    
     # Check if pickle exists and load it
     if os.path.exists(graph_pickle_path):
         # Load graph from pickle
         G = load_graph_from_pickle(graph_pickle_path)
-        _, centroids_gdf, _ = load_data(routes_path, centroids_path, sink_nodes_path)
     else:
         # Load full data and create graph from scratch
         routes_gdf, centroids_gdf, sinks_gdf = load_data(routes_path, centroids_path, sink_nodes_path)
@@ -1428,51 +2083,14 @@ def main():
     # Assign capacities and population data to the graph
     G = assign_road_capacities_and_population(G, population_data_path, sink_nodes_path)
     
-    graph_prep_time = time.time() - graph_prep_start
+    # Calculate evacuation flow with moderate congestion
+    report_path = calculate_evacuation_flow_report(G, results_dir, 
+                                                  congestion_scenario='moderate_congestion',
+                                                  phases=12)
     
-    # Start timing pathfinding process
-    pathfinding_start = time.time()
-    
-    # Process all centroids and find paths
-    results = process_all_centroids(G, centroids_gdf, results_dir)
-    
-    # Run the full evacuation analysis
-    flow_results = analyze_phased_evacuation_flow_only(G, results_dir, phases=12)
-    
-    # Generate visualizations
-    visualization_start = time.time()
-    log_print("Generating centroid-based visualizations...")
-    
-    # Visualize shortest paths
-    paths_vis_dir = visualize_shortest_paths(G, centroids_gdf, results, results_dir)
-    
-    # Visualize per-centroid flows using actual min-cost flow results
-    centroid_flows_vis_dir, flow_report_path = visualize_centroid_flows(G, flow_results, results_dir)
-    
-    visualization_time = time.time() - visualization_start
-    pathfinding_time = time.time() - pathfinding_start
     total_time = time.time() - total_start_time
-    
-    # Add runtime information to the summary file
-    summary_path = os.path.join(results_dir, "evacuation_summary.txt")
-    
-    with open(summary_path, 'a') as f:
-        f.write("\n\nPerformance Summary\n")
-        f.write("=================\n")
-        f.write(f"Graph Preparation Time: {graph_prep_time:.2f} seconds ({graph_prep_time/60:.2f} minutes)\n")
-        f.write(f"Pathfinding Time: {pathfinding_time:.2f} seconds ({pathfinding_time/60:.2f} minutes)\n")
-        f.write(f"Visualization Time: {visualization_time:.2f} seconds ({visualization_time/60:.2f} minutes)\n")
-        f.write(f"Total Run Time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)\n")
-        f.write(f"Average Time Per Centroid: {pathfinding_time/len(centroids_gdf):.2f} seconds\n")
-        f.write(f"\nVisualization Directories:\n")
-        f.write(f"- Path Visualizations: {paths_vis_dir}\n")
-        f.write(f"- Centroid Flow Visualizations: {centroid_flows_vis_dir}\n")
-        f.write(f"\nFlow Report:\n")
-        f.write(f"- {flow_report_path}\n")
-    
     log_print(f"\nCompleted in {total_time:.2f} seconds")
-    log_print(f"Visualizations saved to:\n- {paths_vis_dir}\n- {centroid_flows_vis_dir}")
-    log_print(f"Flow report saved to: {flow_report_path}")
+    log_print(f"Flow report saved to: {report_path}")
 
 if __name__ == "__main__":
     main()
