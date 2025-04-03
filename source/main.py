@@ -396,20 +396,29 @@ def connect_sinks_to_terminals(G, terminal_nodes_path, sink_nodes_path):
         
         log_print(f"Removed {len(neighbors)} existing connections from sink {sink_zip}")
     
-    # Connect each sink to each terminal
+    # Connect each sink to its 3 closest terminals
     total_connections = 0
     for sink_id in sink_node_ids:
         sink_zip = G.nodes[sink_id].get("zip_code", "unknown")
         sink_pos = G.nodes[sink_id]["pos"]
         
+        # Calculate distances to all terminals
+        terminal_distances = []
         for terminal_id in terminal_node_ids:
             terminal_pos = G.nodes[terminal_id]["pos"]
             dist = Point(sink_pos).distance(Point(terminal_pos))
-            
+            terminal_distances.append((terminal_id, dist))
+        
+        # Sort by distance and connect to closest 3 (or fewer if less than 3 terminals exist)
+        terminal_distances.sort(key=lambda x: x[1])
+        closest_count = min(3, len(terminal_distances))
+        
+        for i in range(closest_count):
+            terminal_id, dist = terminal_distances[i]
             G.add_edge(sink_id, terminal_id, weight=dist, road_type="SINK_TERMINAL_CONNECTOR")
             total_connections += 1
         
-        log_print(f"Connected sink {sink_zip} to all {len(terminal_node_ids)} terminal nodes")
+        log_print(f"Connected sink {sink_zip} to its {closest_count} closest terminal nodes")
     
     log_print(f"Created {total_connections} connections between sinks and terminals")
     return G
@@ -763,8 +772,10 @@ def analyze_phased_evacuation_flow_only(G, output_dir, phases=12):
                 if F.nodes[u].get('node_type') == 'centroid' or F.nodes[v].get('node_type') == 'centroid':
                     capacity = max(capacity, phase_pop * 2)
                 
-                # Use unit weights for simplicity
-                weight = 1
+                # Use distance-based costs
+                weight = int(data.get('weight', 100))  # Get actual road distance
+                if weight <= 0:
+                    weight = 1
                 
                 # Add the arc
                 mcf.add_arc_with_capacity_and_unit_cost(
