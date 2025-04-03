@@ -1,191 +1,147 @@
 import os
-import pickle
-import matplotlib.pyplot as plt
 import networkx as nx
-from matplotlib.lines import Line2D
+import matplotlib.pyplot as plt
+import pickle
 from shapely.geometry import Point
+import logging
+
+def setup_logging():
+    """Simple logging setup"""
+    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    
+def log_print(message):
+    """Log a message"""
+    logging.info(message)
 
 def load_graph_from_pickle(pickle_path):
-    """Load the graph from a pickle file."""
+    """Load a NetworkX graph from a pickle file"""
+    log_print(f"Loading graph from {pickle_path}")
     with open(pickle_path, 'rb') as f:
         G = pickle.load(f)
-    print(f"Loaded graph from {pickle_path}")
+    log_print(f"Loaded graph with {len(G.nodes())} nodes and {len(G.edges())} edges")
     return G
 
-def filter_closest_terminal_connections(G, n_closest=5):
-    """Filter to keep only the n closest terminal connections for each sink."""
-    print(f"Filtering to {n_closest} closest terminal connections per sink...")
+def visualize_terminals(G, output_path, figsize=(20, 20), dpi=300, label_terminals=True):
+    """
+    Draw a graph with highlighted and labeled terminal nodes
     
-    # Get all sink and terminal nodes
-    sink_nodes = [node for node, data in G.nodes(data=True) if data.get("node_type") == "sink"]
-    terminal_nodes = [node for node, data in G.nodes(data=True) if data.get("node_type") == "terminal"]
+    Args:
+        G: NetworkX graph
+        output_path: Where to save the visualization
+        figsize: Figure size as tuple (width, height) in inches
+        dpi: Resolution of the output image
+        label_terminals: Whether to add text labels for terminal nodes
+    """
+    log_print("Creating terminal nodes visualization...")
     
-    print(f"Found {len(sink_nodes)} sink nodes and {len(terminal_nodes)} terminal nodes")
+    # Create figure
+    plt.figure(figsize=figsize)
     
-    # Edges to keep
-    filtered_edges = []
-    
-    # Process each sink
-    for sink in sink_nodes:
-        sink_pos = G.nodes[sink].get("pos")
-        sink_zip = G.nodes[sink].get("zip_code", "unknown")
-        
-        # Calculate distances to all terminals
-        terminal_distances = []
-        for terminal in terminal_nodes:
-            if G.has_edge(sink, terminal):
-                terminal_pos = G.nodes[terminal].get("pos")
-                dist = Point(sink_pos).distance(Point(terminal_pos))
-                terminal_distances.append((dist, terminal))
-        
-        # Sort by distance and keep the closest n
-        terminal_distances.sort()
-        closest_terminals = terminal_distances[:n_closest]
-        
-        # Add these edges to our filtered list
-        for _, terminal in closest_terminals:
-            filtered_edges.append((sink, terminal))
-        
-        print(f"Kept {len(closest_terminals)} closest terminals for sink {sink_zip}")
-    
-    return filtered_edges
-
-def visualize_road_network(G, output_path, n_closest_terminals=5):
-    """Visualize the road network with different colors for each road type."""
-    print("Visualizing road network...")
+    # Get positions for all nodes
     pos = nx.get_node_attributes(G, 'pos')
     
-    # Define colors for different road types
-    road_type_colors = {
-        'P': '#0066CC',       # Primary roads - blue
-        'M': '#339933',       # Major roads - green
-        'H': '#CC3333',       # Highways - red
-        'C': '#9933CC',       # Collector roads - purple
-        'R': '#FF9900',       # Ramps - orange
-        'CONNECTOR': '#AAAAAA',      # Auto-generated connections - gray
-        'CENTROID_CONNECTOR': '#CCFFCC', # Centroid connections - light green
-        'SINK_CONNECTOR': '#FFCC99',   # Sink connections - light orange
-        'COMPONENT_CONNECTOR': '#FF99FF', # Component connections - light pink
-        'SINK_TERMINAL_CONNECTOR': '#FF3333',  # Sink to terminal connections - bright red
-        'TERMINAL_CONNECTOR': '#3333FF',  # Terminal to route connections - bright blue
-        'UNKNOWN': '#000000'        # Unknown road type - black
-    }
+    # Identify node types for different styles
+    terminal_nodes = []
+    sink_nodes = []
+    centroid_nodes = []
+    route_nodes = []
     
-    # Plot the graph
-    plt.figure(figsize=(20, 20))
+    for node, data in G.nodes(data=True):
+        if 'pos' not in data:
+            continue  # Skip nodes without position
+            
+        node_type = data.get('node_type', 'unknown')
+        if node_type == 'terminal':
+            terminal_nodes.append(node)
+        elif node_type == 'sink':
+            sink_nodes.append(node)
+        elif node_type == 'centroid':
+            centroid_nodes.append(node)
+        elif node_type == 'route':
+            route_nodes.append(node)
     
-    # Filter to only keep the closest terminal connections
-    closest_sink_terminal_edges = filter_closest_terminal_connections(G, n_closest_terminals)
+    # Draw routes (base layer, thin gray lines)
+    log_print(f"Drawing {len(route_nodes)} route nodes...")
     
-    # Draw connectors first (in background)
-    connector_types = ['CONNECTOR', 'CENTROID_CONNECTOR', 'COMPONENT_CONNECTOR', 'TERMINAL_CONNECTOR']
-    for road_type in connector_types:
-        # Get edges of this road type
-        edges = [(u, v) for u, v, d in G.edges(data=True) 
-                if d.get('road_type') == road_type]
+    # To avoid drawing all route nodes individually (which could be slow),
+    # just draw route edges
+    route_edges = []
+    for u, v, data in G.edges(data=True):
+        if G.nodes.get(u, {}).get('node_type') == 'route' and G.nodes.get(v, {}).get('node_type') == 'route':
+            route_edges.append((u, v))
+    
+    nx.draw_networkx_edges(G, pos, edgelist=route_edges, 
+                         edge_color='lightgray', width=0.3, alpha=0.5)
+    
+    # Draw centroids
+    log_print(f"Drawing {len(centroid_nodes)} centroid nodes...")
+    nx.draw_networkx_nodes(G, pos, nodelist=centroid_nodes,
+                         node_color='blue', node_size=50, alpha=0.7)
+    
+    # Draw sinks
+    log_print(f"Drawing {len(sink_nodes)} sink nodes...")
+    nx.draw_networkx_nodes(G, pos, nodelist=sink_nodes,
+                         node_color='green', node_size=150, alpha=0.7)
+    
+    # Draw terminals (larger and more prominent)
+    log_print(f"Drawing {len(terminal_nodes)} terminal nodes...")
+    nx.draw_networkx_nodes(G, pos, nodelist=terminal_nodes,
+                         node_color='red', node_size=200, alpha=1.0)
+    
+    # Add labels to terminal nodes
+    if label_terminals:
+        # Create a dictionary for terminal labels with their IDs
+        terminal_labels = {}
+        for node in terminal_nodes:
+            # Extract ID from node name or use ID directly
+            terminal_id = node
+            if node.startswith('t_'):
+                terminal_id = node[2:]  # Remove 't_' prefix
+            terminal_labels[node] = terminal_id
         
-        if edges:
-            nx.draw_networkx_edges(G, pos, edgelist=edges, 
-                                 edge_color=road_type_colors[road_type], 
-                                 width=0.7, alpha=0.3)
+        nx.draw_networkx_labels(G, pos, labels=terminal_labels,
+                              font_size=10, font_color='black', 
+                              bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', boxstyle='round,pad=0.2'))
     
-    # Draw actual roads on top with proper colors
-    actual_road_types = [t for t in road_type_colors.keys() 
-                        if t not in connector_types and t != 'SINK_TERMINAL_CONNECTOR']
-    for road_type in actual_road_types:
-        # Get edges of this road type
-        edges = [(u, v) for u, v, d in G.edges(data=True) 
-                if d.get('road_type') == road_type]
-        
-        if edges:
-            nx.draw_networkx_edges(G, pos, edgelist=edges, 
-                                 edge_color=road_type_colors[road_type], 
-                                 width=1.5, alpha=0.8)
+    # Add a title and legend
+    plt.title("Tampa Evacuation Network with Terminal Nodes")
     
-    # Draw filtered sink-terminal connections
-    if closest_sink_terminal_edges:
-        nx.draw_networkx_edges(G, pos, edgelist=closest_sink_terminal_edges, 
-                             edge_color=road_type_colors['SINK_TERMINAL_CONNECTOR'], 
-                             width=1.2, alpha=0.9)
+    # Create legend
+    legend_elements = [
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=15, label='Terminal Nodes'),
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='green', markersize=12, label='Sink Nodes'),
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=8, label='Centroid Nodes'),
+        plt.Line2D([0], [0], color='lightgray', lw=2, label='Road Network')
+    ]
     
-    # Draw centroids as stars
-    centroid_nodes = [n for n, d in G.nodes(data=True) if d.get("node_type") == "centroid"]
-    if centroid_nodes:
-        nx.draw_networkx_nodes(G, pos, nodelist=centroid_nodes, node_size=80, 
-                             node_color="lime", node_shape='*', alpha=1.0)
+    plt.legend(handles=legend_elements, loc='lower right')
     
-    # Draw terminal nodes as triangles
-    terminal_nodes = [n for n, d in G.nodes(data=True) if d.get("node_type") == "terminal"]
-    if terminal_nodes:
-        nx.draw_networkx_nodes(G, pos, nodelist=terminal_nodes, node_size=80, 
-                             node_color="blue", node_shape='^', alpha=1.0)
-    
-    # Draw sinks as squares
-    sink_nodes = [n for n, d in G.nodes(data=True) if d.get("node_type") == "sink"]
-    if sink_nodes:
-        nx.draw_networkx_nodes(G, pos, nodelist=sink_nodes, node_size=80, 
-                             node_color="crimson", node_shape='s', alpha=1.0)
-    
-    # Add labels for sink nodes
-    sink_labels = {node: G.nodes[node].get("zip_code", "") for node in sink_nodes}
-    nx.draw_networkx_labels(G, pos, labels=sink_labels, font_size=8)
-    
-    # Add a legend
-    legend_items = []
-    
-    # Road type legend items
-    for road_type, color in road_type_colors.items():
-        # Only include road types that actually exist in the graph
-        if any(d.get('road_type') == road_type for _, _, d in G.edges(data=True)):
-            if road_type in connector_types:
-                legend_items.append(Line2D([], [], color=color, linewidth=1, alpha=0.3,
-                                        label=f'{road_type} (Auto-generated)'))
-            elif road_type == 'SINK_TERMINAL_CONNECTOR':
-                legend_items.append(Line2D([], [], color=color, linewidth=1.2, alpha=0.9,
-                                        label=f'Sink-Terminal Connections (Top {n_closest_terminals})'))
-            else:
-                road_type_label = {
-                    'P': 'Primary',
-                    'M': 'Major',
-                    'H': 'Highway',
-                    'C': 'Collector', 
-                    'R': 'Ramp',
-                    'UNKNOWN': 'Unknown'
-                }.get(road_type, road_type)
-                
-                legend_items.append(Line2D([], [], color=color, linewidth=2,
-                                        label=f'{road_type_label} Roads'))
-    
-    # Node type legend items
-    legend_items.append(Line2D([], [], marker='*', color='w', markerfacecolor='lime', 
-                             markersize=10, label='Centroids (Origin)', linestyle='None'))
-    legend_items.append(Line2D([], [], marker='^', color='w', markerfacecolor='blue', 
-                             markersize=8, label='Terminals', linestyle='None'))
-    legend_items.append(Line2D([], [], marker='s', color='w', markerfacecolor='crimson', 
-                             markersize=8, label='Sinks (Destination)', linestyle='None'))
-    
-    plt.legend(handles=legend_items, loc='best')
-    plt.title(f"Tampa Evacuation Route Network (Top {n_closest_terminals} Terminal Connections)")
-    
-    # Remove axes for cleaner look
+    # Turn off axis
     plt.axis('off')
     
     # Save the visualization
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    print(f"Road network visualization saved to {output_path}")
+    log_print(f"Saving visualization to {output_path}")
+    plt.savefig(output_path, dpi=dpi, bbox_inches='tight')
     plt.close()
+    
+    log_print("Visualization complete")
+    return output_path
 
 def main():
-    # Define file paths
-    data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
-    graph_pickle_path = os.path.join(data_dir, "evacuation_graph.pickle")
-    network_viz_path = os.path.join(data_dir, "road_network.png")
+    """Main entry point"""
+    setup_logging()
     
-    # Load the graph
-    G = load_graph_from_pickle(graph_pickle_path)
+    # Define paths
+    pickle_path = "/workspaces/OSMTampaMapping/data/evacuation_graph.pickle"
+    output_dir = "/workspaces/OSMTampaMapping/data/results"
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, "terminal_node_visualization.png")
     
-    # Visualize just the road network with only top 5 terminal connections
-    visualize_road_network(G, network_viz_path, n_closest_terminals=5)
+    # Load graph and visualize
+    G = load_graph_from_pickle(pickle_path)
+    visualize_terminals(G, output_path)
+    
+    log_print(f"Terminal node visualization saved to {output_path}")
 
 if __name__ == "__main__":
     main()

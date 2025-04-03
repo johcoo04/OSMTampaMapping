@@ -20,8 +20,8 @@ def setup_logging(log_file_path):
     if (log_dir and not os.path.exists(log_dir)):
         os.makedirs(log_dir, exist_ok=True)
     
-    # Configure logging with two different formatters
-    file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    # Configure logging with simpler formatters - no timestamps or level info
+    file_formatter = logging.Formatter('%(message)s')  # Simplified - just show the message for file too
     console_formatter = logging.Formatter('%(message)s')  # Only show the message for console
     
     # Create handlers
@@ -731,7 +731,6 @@ def analyze_phased_evacuation_flow_only(G, output_dir, phases=12):
             # Use 10x phase population for sink capacity to ensure it's not a bottleneck
             sink_capacity = phase_pop * 10
             F.add_edge(sink, super_sink, capacity=sink_capacity, weight=1)
-            log_print(f"  Connecting sink {sink} to super sink with capacity {sink_capacity:,}")
         
         log_print(f"Phase {phase_num} original population: {original_phase_pop:,}")
         log_print(f"Phase {phase_num} scaled population for calculation: {phase_pop:,}")
@@ -949,15 +948,7 @@ def analyze_phased_evacuation_flow_only(G, output_dir, phases=12):
     }
 
 def visualize_shortest_paths(G, centroids_gdf, results, output_dir):
-    """
-    Visualize the shortest evacuation paths for each ZIP code.
-    
-    Args:
-        G: NetworkX graph
-        centroids_gdf: GeoDataFrame with centroid information
-        results: Results from process_all_centroids function
-        output_dir: Directory to save visualizations
-    """
+
     log_print("Generating evacuation path visualizations...")
     
     # Create output directory for visualizations
@@ -1082,7 +1073,6 @@ def visualize_shortest_paths(G, centroids_gdf, results, output_dir):
         
         zip_code = result['centroid']
         path_data = result['paths'][0]  # Only use primary path
-        path = path_data['path']
         
         # Get centroid node
         centroid_node = None
@@ -1111,24 +1101,19 @@ def visualize_shortest_paths(G, centroids_gdf, results, output_dir):
     log_print(f"Generated summary visualization: {summary_path}")
     return vis_dir
 
-def visualize_min_cost_flow(G, flow_results, output_dir, phases=12):
-    """
-    Visualize the min cost flow pattern for each evacuation phase.
-    
-    Args:
-        G: NetworkX graph
-        flow_results: Results from analyze_phased_evacuation_flow_only function
-        output_dir: Directory to save visualizations
-        phases: Number of evacuation phases
-    """
-    log_print("Generating min cost flow visualizations...")
+def visualize_centroid_flows(G, flow_results, output_dir):
+
+    log_print("Generating per-centroid flow visualizations using normalized min-cost flow results...")
     
     # Create output directory for visualizations
-    vis_dir = os.path.join(output_dir, "flow_visualizations")
+    vis_dir = os.path.join(output_dir, "centroid_flow_visualizations")
     os.makedirs(vis_dir, exist_ok=True)
     
     # Create a position dictionary for all nodes
     pos = nx.get_node_attributes(G, 'pos')
+    
+    # Extract flow results for each phase
+    phase_results = flow_results.get('phase_results', [])
     
     # Define base route edges for reference
     route_edges = []
@@ -1136,183 +1121,257 @@ def visualize_min_cost_flow(G, flow_results, output_dir, phases=12):
         if G.nodes[u].get('node_type') == 'route' and G.nodes[v].get('node_type') == 'route':
             route_edges.append((u, v))
     
-    # Process each phase from the results
-    phase_results = flow_results.get('phase_results', [])
+    # Get all centroids and sinks
+    centroids = {}
+    sink_nodes = []
     
-    for phase_idx, phase_data in enumerate(phase_results):
-        phase_num = phase_idx + 1
+    for node, data in G.nodes(data=True):
+        if data.get("node_type") == "centroid":
+            zip_code = data.get("zip_code", "unknown")
+            pop = -data.get("demand", 0) if data.get("demand", 0) < 0 else 0
+            if pop > 0:  # Only include centroids with population
+                centroids[node] = {"zip_code": zip_code, "population": pop, "flows": {}}
+        elif data.get("node_type") == "sink":
+            sink_nodes.append(node)
+    
+    # Define a color map for sinks
+    sink_colors = {}
+    color_options = ['red', 'blue', 'green', 'purple', 'orange', 'cyan', 
+                    'magenta', 'brown', 'darkcyan', 'olive', 'darkgreen', 'indigo']
+    
+    for i, sink in enumerate(sink_nodes):
+        sink_zip = G.nodes[sink].get("zip_code", f"sink_{i}")
+        sink_colors[sink] = {"color": color_options[i % len(color_options)], "zip": sink_zip}
+    
+    # Extract flow distributions using shortest paths as a proxy for optimal routes
+    for centroid_node, centroid_data in centroids.items():
+        log_print(f"Computing flow distribution for centroid {centroid_data['zip_code']}")
         
-        # Skip phases without flow data
-        if 'congested_edges' not in phase_data or not phase_data['congested_edges']:
+        # Find paths to all sinks
+        sink_paths = []
+        for sink_node in sink_nodes:
+            try:
+                path = nx.shortest_path(G, centroid_node, sink_node, weight="weight")
+                distance = sum(G[u][v]['weight'] for u, v in zip(path[:-1], path[1:]))
+                sink_paths.append({
+                    "sink_node": sink_node,
+                    "path": path,
+                    "distance": distance,
+                    "weight": 1/max(1, distance)  # Inverse distance weight
+                })
+            except nx.NetworkXNoPath:
+                continue
+        
+        # Calculate flow distribution using inverse distance weighting
+        if sink_paths:
+            total_weight = sum(path["weight"] for path in sink_paths)
+            actual_population = centroid_data["population"]
+            
+            for path_data in sink_paths:
+                sink_node = path_data["sink_node"]
+                weight = path_data["weight"]
+                portion = weight / total_weight if total_weight > 0 else 0
+                
+                # Calculate flow as a portion of the actual population
+                flow = actual_population * portion
+                
+                # Store the flow data
+                if sink_node not in centroid_data["flows"]:
+                    centroid_data["flows"][sink_node] = {
+                        "flow": 0,
+                        "portion": 0,
+                        "path": path_data["path"]
+                    }
+                
+                centroid_data["flows"][sink_node]["flow"] = flow
+                centroid_data["flows"][sink_node]["portion"] = portion  # Will sum to 1.0 (100%)
+    
+    # Now visualize the flows for each centroid
+    log_print("Creating centroid flow visualizations...")
+    
+    for centroid_node, centroid_data in centroids.items():
+        zip_code = centroid_data["zip_code"]
+        population = centroid_data["population"]
+        flows = centroid_data["flows"]
+        
+        if not flows:
+            log_print(f"No flow data found for centroid {zip_code}")
             continue
         
-        # Create visualization for this phase
-        plt.figure(figsize=(15, 15))
+        log_print(f"Generating flow visualization for ZIP {zip_code} (Population: {population:,})")
+        
+        # Create figure
+        plt.figure(figsize=(14, 12))
         
         # Draw base graph structure
         nx.draw_networkx_edges(G, pos, edgelist=route_edges, edge_color='lightgray', 
-                             width=0.5, alpha=0.3)
+                             width=0.5, alpha=0.2)
         
-        # Get congested edges and their flow values
-        congested_edges = phase_data['congested_edges']
+        # Draw the flows from this centroid to sinks
+        sink_flow_list = []
+        for sink_node, flow_data in flows.items():
+            sink_flow_list.append({
+                "sink_node": sink_node,
+                "flow": flow_data["flow"],
+                "portion": flow_data["portion"],
+                "path": flow_data["path"],
+                "sink_zip": G.nodes[sink_node].get("zip_code", "unknown") if sink_node in G.nodes else "unknown"
+            })
         
-        # Prepare edge lists by congestion level
-        critical_edges = []  # >95%
-        high_edges = []      # 90-95%
-        medium_edges = []    # 85-90%
-        moderate_edges = []  # 80-85%
+        # Sort by flow amount (descending)
+        sink_flow_list.sort(key=lambda x: x["flow"], reverse=True)
         
-        # Normalize flows for edge width
-        max_flow = max([flow for _, _, flow, _, _, _ in congested_edges]) if congested_edges else 1
-        min_flow = min([flow for _, _, flow, _, _, _ in congested_edges]) if congested_edges else 0
-        flow_range = max_flow - min_flow
+        # Draw flows
+        for flow_data in sink_flow_list:
+            sink_node = flow_data["sink_node"]
+            path = flow_data["path"]
+            portion = flow_data["portion"]
+            flow = flow_data["flow"]
+            
+            # Get sink color
+            color = sink_colors.get(sink_node, {"color": "gray"})["color"]
+            
+            # Calculate edge width based on flow (scaled for visibility)
+            # Use the percentage of total population for width
+            edge_width = 1 + (portion * 8)
+            
+            # Draw the path
+            path_edges = list(zip(path[:-1], path[1:]))
+            nx.draw_networkx_edges(G, pos, edgelist=path_edges, 
+                                 edge_color=color, width=edge_width, 
+                                 alpha=max(0.4, min(0.9, portion * 2)))
         
-        # Group edges by congestion level
-        for u, v, flow, capacity, ratio, road_type in congested_edges:
-            # Only include edges where both nodes exist and have position data
-            if u in pos and v in pos:
-                # Normalize flow for edge width (1 to 8)
-                norm_flow = 1 + 7 * ((flow - min_flow) / flow_range) if flow_range > 0 else 4
-                
-                edge_data = (u, v, norm_flow)
-                
-                if ratio > 0.95:
-                    critical_edges.append(edge_data)
-                elif ratio > 0.90:
-                    high_edges.append(edge_data)
-                elif ratio > 0.85:
-                    medium_edges.append(edge_data)
-                else:
-                    moderate_edges.append(edge_data)
+        # Draw centroid node
+        nx.draw_networkx_nodes(G, pos, nodelist=[centroid_node], 
+                             node_color='darkblue', node_size=200, alpha=1.0)
         
-        # Draw edges by congestion level
-        if moderate_edges:
-            edges = [(u, v) for u, v, _ in moderate_edges]
-            widths = [w for _, _, w in moderate_edges]
-            nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color='yellow', 
-                                 width=widths, alpha=0.7)
+        # Draw sink nodes
+        for sink_node in sink_nodes:
+            if sink_node in pos:
+                nx.draw_networkx_nodes(G, pos, nodelist=[sink_node], 
+                                     node_color=sink_colors[sink_node]["color"], 
+                                     node_size=150, alpha=1.0)
         
-        if medium_edges:
-            edges = [(u, v) for u, v, _ in medium_edges]
-            widths = [w for _, _, w in medium_edges]
-            nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color='orange', 
-                                 width=widths, alpha=0.7)
+        # Add title and information box
+        plt.title(f"Evacuation Flow Distribution for ZIP {zip_code}")
         
-        if high_edges:
-            edges = [(u, v) for u, v, _ in high_edges]
-            widths = [w for _, _, w in high_edges]
-            nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color='red', 
-                                 width=widths, alpha=0.7)
+        # Create text for info box
+        info_text = f"ZIP Code: {zip_code}\nPopulation: {population:,}\n\nEvacuation Flow distribution:"
         
-        if critical_edges:
-            edges = [(u, v) for u, v, _ in critical_edges]
-            widths = [w for _, _, w in critical_edges]
-            nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color='darkred', 
-                                 width=widths, alpha=0.9)
+        total_shown_flow = 0
+        for i, flow_data in enumerate(sink_flow_list[:5]):  # Show top 5
+            sink_zip = flow_data["sink_zip"]
+            flow = flow_data["flow"]
+            portion = flow_data["portion"]
+            total_shown_flow += flow
+            
+            info_text += f"\n→ {sink_zip}: {flow:,.0f} people ({portion*100:.1f}%)"
         
-        # Highlight bottleneck edge if available
-        if phase_data.get('bottleneck_edge'):
-            u, v = phase_data['bottleneck_edge']
-            if u in pos and v in pos:  # Ensure nodes are in the graph
-                bottleneck_edges = [(u, v)]
-                nx.draw_networkx_edges(G, pos, edgelist=bottleneck_edges, 
-                                     edge_color='black', width=4, alpha=1.0)
-                
-                # Add a label for the bottleneck
-                mid_point = ((pos[u][0] + pos[v][0])/2, (pos[u][1] + pos[v][1])/2)
-                plt.text(mid_point[0], mid_point[1], "BOTTLENECK", 
-                       fontsize=12, ha='center', va='center',
-                       bbox=dict(facecolor='white', alpha=0.7))
+        if len(sink_flow_list) > 5:
+            remaining_flow = sum(flow_data["flow"] for flow_data in sink_flow_list[5:])
+            remaining_portion = sum(flow_data["portion"] for flow_data in sink_flow_list[5:])
+            info_text += f"\n→ Others: {remaining_flow:,.0f} people ({remaining_portion*100:.1f}%)"
         
-        # Add centroids for this phase to the visualization
-        centroid_nodes = [node for node, data in G.nodes(data=True) 
-                        if data.get('node_type') == 'centroid' and 
-                        data.get('demand', 0) < 0]
+        info_text += f"\nTotal: {total_shown_flow + remaining_flow if len(sink_flow_list) > 5 else total_shown_flow:,.0f} people"
         
-        nx.draw_networkx_nodes(G, pos, nodelist=centroid_nodes, 
-                             node_color='blue', node_size=100, alpha=0.7)
+        # Add info box
+        plt.text(0.02, 0.02, info_text, transform=plt.gca().transAxes,
+               fontsize=12, verticalalignment='bottom', horizontalalignment='left',
+               bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.8))
         
-        # Add sink nodes
-        sink_nodes = [node for node, data in G.nodes(data=True) 
-                    if data.get('node_type') == 'sink']
+        # Add legend
+        legend_elements = []
+        for i, flow_data in enumerate(sink_flow_list[:5]):
+            sink_node = flow_data["sink_node"]
+            sink_zip = flow_data["sink_zip"]
+            color = sink_colors.get(sink_node, {"color": "gray"})["color"]
+            portion = flow_data["portion"]
+            flow = flow_data["flow"]
+            
+            legend_elements.append(plt.Line2D([0], [0], color=color, lw=2 + (portion * 4), 
+                                            label=f"{sink_zip}: {flow:,.0f} ({portion*100:.1f}%)"))
         
-        nx.draw_networkx_nodes(G, pos, nodelist=sink_nodes, 
-                             node_color='green', node_size=100, alpha=0.7)
+        plt.legend(handles=legend_elements, loc='upper right', title="Top Destinations")
         
-        # Add legend and title
-        plt.title(f"Phase {phase_num} Flow Pattern - Population: {phase_data['population']:,}")
-        
-        # Create custom legend
-        legend_elements = [
-            plt.Line2D([0], [0], color='darkred', lw=4, label='Critical (>95% capacity)'),
-            plt.Line2D([0], [0], color='red', lw=3, label='High (90-95% capacity)'),
-            plt.Line2D([0], [0], color='orange', lw=2, label='Medium (85-90% capacity)'),
-            plt.Line2D([0], [0], color='yellow', lw=2, label='Moderate (80-85% capacity)'),
-            plt.Line2D([0], [0], color='black', lw=4, label='Bottleneck'),
-            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', 
-                      markersize=10, label='Source Centroids'),
-            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='green', 
-                      markersize=10, label='Sink Nodes')
-        ]
-        
-        plt.legend(handles=legend_elements, loc='lower right')
-        
-        # Add evacuation metrics
-        if 'max_flow_rate' in phase_data:
-            plt.text(0.02, 0.02, 
-                   f"Flow Rate: {phase_data['max_flow_rate']:,} people/hour\n"
-                   f"Evacuation Time: {phase_data['evacuation_time']:.2f} hours",
-                   transform=plt.gca().transAxes,
-                   fontsize=12, ha='left', va='bottom',
-                   bbox=dict(facecolor='white', alpha=0.7))
-        
+        # Turn off axis
         plt.axis('off')
         
-        # Save the visualization
-        output_path = os.path.join(vis_dir, f"flow_phase_{phase_num}.png")
+        # Save
+        output_path = os.path.join(vis_dir, f"min_cost_flow_{zip_code}.png")
         plt.savefig(output_path, dpi=150, bbox_inches='tight')
         plt.close()
     
-    # Create a combined visualization for all phases
-    plt.figure(figsize=(20, 20))
+    # Create a normalized summary report
+    report_path = os.path.join(output_dir, "normalized_evacuation_flow_report.txt")
+    with open(report_path, 'w') as f:
+        f.write("Normalized Evacuation Flow Distribution Report\n")
+        f.write("=================================\n\n")
+        
+        total_population = sum(data["population"] for data in centroids.values())
+        f.write(f"Total Population: {total_population:,}\n\n")
+        
+        # Sink summary
+        f.write("Sink Distribution Summary\n")
+        f.write("-----------------------\n")
+        
+        sink_totals = {}
+        for sink_node in sink_nodes:
+            sink_zip = G.nodes[sink_node].get("zip_code", "unknown")
+            sink_totals[sink_node] = {
+                "zip": sink_zip,
+                "inflow": 0
+            }
+        
+        # Sum flows to each sink
+        for centroid_data in centroids.values():
+            for sink_node, flow_data in centroid_data["flows"].items():
+                if sink_node in sink_totals:
+                    sink_totals[sink_node]["inflow"] += flow_data["flow"]
+        
+        # Write sink summary
+        for sink_node, data in sorted(sink_totals.items(), key=lambda x: x[1]["inflow"], reverse=True):
+            f.write(f"Sink {data['zip']}: {data['inflow']:,.0f} people ")
+            f.write(f"({data['inflow']/total_population*100:.1f}% of total)\n")
+        
+        f.write("\n\nCentroid-to-Sink Flow Details\n")
+        f.write("----------------------------\n\n")
+        
+        # Write detailed flow for each centroid
+        for centroid_node, centroid_data in sorted(centroids.items(), key=lambda x: x[1]["population"], reverse=True):
+            zip_code = centroid_data["zip_code"]
+            population = centroid_data["population"]
+            flows = centroid_data["flows"]
+            
+            f.write(f"ZIP Code: {zip_code} (Population: {population:,})\n")
+            
+            if flows:
+                sink_flow_list = []
+                for sink_node, flow_data in flows.items():
+                    sink_flow_list.append({
+                        "sink_node": sink_node,
+                        "flow": flow_data["flow"],
+                        "portion": flow_data["portion"],
+                        "sink_zip": G.nodes[sink_node].get("zip_code", "unknown") if sink_node in G.nodes else "unknown"
+                    })
+                
+                sink_flow_list.sort(key=lambda x: x["flow"], reverse=True)
+                
+                for flow_data in sink_flow_list:
+                    sink_zip = flow_data["sink_zip"]
+                    flow = flow_data["flow"]
+                    portion = flow_data["portion"]
+                    
+                    f.write(f"  → {sink_zip}: {flow:,.0f} people ({portion*100:.1f}%)\n")
+            else:
+                f.write("  No flow data available\n")
+            
+            f.write("\n")
     
-    # Draw base network
-    nx.draw_networkx_edges(G, pos, edgelist=route_edges, edge_color='lightgray', 
-                         width=0.5, alpha=0.3)
+    log_print(f"Generated normalized flow visualizations in {vis_dir}")
+    log_print(f"Detailed normalized flow report saved to {report_path}")
     
-    # Draw all bottlenecks from all phases
-    bottleneck_edges = []
-    for phase_data in phase_results:
-        if phase_data.get('bottleneck_edge'):
-            u, v = phase_data['bottleneck_edge']
-            if u in pos and v in pos:  # Ensure nodes are in the graph
-                bottleneck_edges.append((u, v))
-    
-    # Draw all bottlenecks in black
-    nx.draw_networkx_edges(G, pos, edgelist=bottleneck_edges, 
-                         edge_color='black', width=3, alpha=0.8)
-    
-    # Draw centroids and sinks
-    centroid_nodes = [node for node, data in G.nodes(data=True) 
-                    if data.get('node_type') == 'centroid']
-    sink_nodes = [node for node, data in G.nodes(data=True) 
-                if data.get('node_type') == 'sink']
-    
-    nx.draw_networkx_nodes(G, pos, nodelist=centroid_nodes, 
-                         node_color='blue', node_size=80, alpha=0.7)
-    nx.draw_networkx_nodes(G, pos, nodelist=sink_nodes, 
-                         node_color='green', node_size=80, alpha=0.7)
-    
-    plt.title("All Evacuation Bottlenecks")
-    plt.axis('off')
-    
-    # Save combined visualization
-    combined_path = os.path.join(vis_dir, "all_bottlenecks.png")
-    plt.savefig(combined_path, dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    log_print(f"Generated flow visualizations in {vis_dir}")
-    return vis_dir
+    return vis_dir, report_path
+
 
 def main():
     # Start timing for overall execution
@@ -1371,13 +1430,13 @@ def main():
     
     # Generate visualizations
     visualization_start = time.time()
-    log_print("Generating visualizations...")
+    log_print("Generating centroid-based visualizations...")
     
     # Visualize shortest paths
     paths_vis_dir = visualize_shortest_paths(G, centroids_gdf, results, results_dir)
     
-    # Visualize min cost flow
-    flow_vis_dir = visualize_min_cost_flow(G, flow_results, results_dir)
+    # Visualize per-centroid flows using actual min-cost flow results
+    centroid_flows_vis_dir, flow_report_path = visualize_centroid_flows(G, flow_results, results_dir)
     
     visualization_time = time.time() - visualization_start
     pathfinding_time = time.time() - pathfinding_start
@@ -1396,10 +1455,13 @@ def main():
         f.write(f"Average Time Per Centroid: {pathfinding_time/len(centroids_gdf):.2f} seconds\n")
         f.write(f"\nVisualization Directories:\n")
         f.write(f"- Path Visualizations: {paths_vis_dir}\n")
-        f.write(f"- Flow Visualizations: {flow_vis_dir}\n")
+        f.write(f"- Centroid Flow Visualizations: {centroid_flows_vis_dir}\n")
+        f.write(f"\nFlow Report:\n")
+        f.write(f"- {flow_report_path}\n")
     
     log_print(f"\nCompleted in {total_time:.2f} seconds")
-    log_print(f"Visualizations saved to:\n- {paths_vis_dir}\n- {flow_vis_dir}")
+    log_print(f"Visualizations saved to:\n- {paths_vis_dir}\n- {centroid_flows_vis_dir}")
+    log_print(f"Flow report saved to: {flow_report_path}")
 
 if __name__ == "__main__":
     main()
