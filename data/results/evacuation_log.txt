@@ -654,3 +654,675 @@ Processing Phase 12 with 4 source nodes
 Time-phased evacuation analysis completed in 15.95 seconds
 2025-04-02 16:56:07,558 - INFO - Total estimated evacuation time: 120.40 hours (7224.2 minutes)
 2025-04-02 16:56:07,558 - INFO - Results saved to /Users/jackcoon/Documents/OEM/TampaCode/OSMTampaMapping/data/results/phased_evacuation_summary.txt
+2025-04-02 20:16:09,765 - INFO - Logging started. Output will be saved to /Users/jackcoon/Documents/OEM/TampaCode/OSMTampaMapping/data/results/evacuation_log.txt
+2025-04-02 20:16:09,765 - INFO - Starting evacuation analysis at 2025-04-02 20:16:09
+2025-04-02 20:16:09,818 - INFO - Loaded graph from /Users/jackcoon/Documents/OEM/TampaCode/OSMTampaMapping/data/evacuation_graph.pickle
+2025-04-02 20:16:09,818 - INFO - Loading data...
+2025-04-02 20:16:09,968 - INFO - Loaded 2432 evacuation routes
+2025-04-02 20:16:09,969 - INFO - Loaded 51 zip code centroids
+2025-04-02 20:16:09,969 - INFO - Loaded 12 sink nodes
+2025-04-02 20:16:09,970 - INFO - Assigning road capacities and population data...
+2025-04-02 20:16:09,970 - INFO - Loaded population data for 55 zip codes
+2025-04-02 20:16:09,970 - INFO - Loaded capacity data for 12 sink nodes
+2025-04-02 20:16:10,040 - INFO - Updated 162866 edges with capacity attributes
+2025-04-02 20:16:10,041 - INFO - Updated 51 centroids with population demand
+2025-04-02 20:16:10,042 - INFO - Updated 12 sink nodes with capacity values from sink_nodes.json
+2025-04-02 20:16:10,042 - INFO - Computing shortest paths to multiple sinks using A* algorithm...
+2025-04-02 20:16:10,043 - INFO - Processing centroid 33527...
+2025-04-02 20:16:10,406 - INFO - Found 3 paths from centroid 33527 to different sinks
+2025-04-02 20:16:10,406 - INFO -   Path 1: to sink 33815, distance: 28.49 km
+2025-04-02 20:16:10,406 - INFO -   Path 2: to sink 33811, distance: 28.65 km
+2025-04-02 20:16:10,406 - INFO -   Path 3: to sink 33540, distance: 40.48 km
+2025-04-02 20:16:10,406 - INFO - Processing centroid 33604...
+2025-04-02 20:16:11,083 - INFO - Found 3 paths from centroid 33604 to different sinks
+2025-04-02 20:16:11,083 - INFO -   Path 1: to sink 33544, distance: 32.72 km
+2025-04-02 20:16:11,084 - INFO -   Path 2: to sink 34638, distance: 33.29 km
+2025-04-02 20:16:11,084 - INFO -   Path 3: to sink 34655, distance: 42.36 km
+2025-04-02 20:16:11,084 - INFO - Processing centroid 33621...
+2025-04-02 20:16:11,179 - INFO - Found 3 paths from centroid 33621 to different sinks
+2025-04-02 20:16:11,179 - INFO -   Path 1: to sink 34221, distance: 41.15 km
+2025-04-02 20:16:11,179 - INFO -   Path 2: to sink 34655, distance: 51.32 km
+2025-04-02 20:16:11,179 - INFO -   Path 3: to sink 34219, distance: 51.33 km
+2025-04-02 20:16:11,179 - INFO - Processing centroid 33563...
+2025-04-02 20:16:11,529 - INFO - Found 3 paths from centroid 33563 to different sinks
+2025-04-02 20:16:11,530 - INFO -   Path 1: to sink 33815, distance: 15.30 km
+2025-04-02 20:16:11,530 - INFO -   Path 2: to sink 33811, distance: 15.46 km
+2025-04-02 20:16:11,530 - INFO -   Path 3: to sink 33540, distance: 26.82 km
+2025-04-02 20:16:11,530 - INFO - Processing centroid 33610...
+2025-04-02 20:16:12,431 - INFO - Found 3 paths from centroid 33610 to different sinks
+2025-04-02 20:16:12,431 - INFO -   Path 1: to sink 33544, distance: 36.28 km
+2025-04-02 20:16:12,431 - INFO -   Path 2: to sink 33541, distance: 37.73 km
+2025-04-02 20:16:12,431 - INFO -   Path 3: to sink 33540, distance: 41.63 km
+2025-04-02 20:16:12,431 - INFO - Processing centroid 33606...
+2025-04-02 20:16:13,069 - INFO - Found 3 paths from centroid 33606 to different sinks
+2025-04-02 20:16:13,069 - INFO -   Path 1: to sink 33544, distance: 47.57 km
+2025-04-02 20:16:13,069 - INFO -   Path 2: to sink 34638, distance: 48.14 km
+2025-04-02 20:16:13,069 - INFO -   Path 3: to sink 34221, distance: 48.52 km
+2025-04-02 20:16:13,069 - INFO - Processing centroid 33609...
+2025-04-02 20:16:13,647 - INFO - Found 3 paths from centroid 33609 to different sinks
+2025-04-02 20:16:13,648 - INFO -   Path 1: to sink 34638, distance: 43.25 km
+2025-04-02 20:16:13,648 - INFO -   Path 2: to sink 34655, distance: 45.37 km
+2025-04-02 20:16:13,648 - INFO -   Path 3: to sink 33544, distance: 45.96 km
+2025-04-02 20:16:13,648 - INFO - Processing centroid 33620...
+2025-04-02 20:16:14,228 - INFO - Found 3 paths from centroid 33620 to different sinks
+2025-04-02 20:16:14,228 - INFO -   Path 1: to sink 33544, distance: 29.01 km
+2025-04-02 20:16:14,228 - INFO -   Path 2: to sink 34638, distance: 31.89 km
+2025-04-02 20:16:14,228 - INFO -   Path 3: to sink 33541, distance: 32.93 km
+2025-04-02 20:16:14,228 - INFO - Processing centroid 33569...
+2025-04-02 20:16:14,824 - INFO - Found 3 paths from centroid 33569 to different sinks
+2025-04-02 20:16:14,824 - INFO -   Path 1: to sink 34221, distance: 48.39 km
+2025-04-02 20:16:14,824 - INFO -   Path 2: to sink 34219, distance: 48.74 km
+2025-04-02 20:16:14,824 - INFO -   Path 3: to sink 33811, distance: 55.88 km
+2025-04-02 20:16:14,824 - INFO - Processing centroid 33584...
+2025-04-02 20:16:15,279 - INFO - Found 3 paths from centroid 33584 to different sinks
+2025-04-02 20:16:15,279 - INFO -   Path 1: to sink 33815, distance: 33.37 km
+2025-04-02 20:16:15,279 - INFO -   Path 2: to sink 33811, distance: 33.53 km
+2025-04-02 20:16:15,279 - INFO -   Path 3: to sink 33544, distance: 38.61 km
+2025-04-02 20:16:15,279 - INFO - Processing centroid 33613...
+2025-04-02 20:16:15,909 - INFO - Found 3 paths from centroid 33613 to different sinks
+2025-04-02 20:16:15,909 - INFO -   Path 1: to sink 33544, distance: 24.17 km
+2025-04-02 20:16:15,910 - INFO -   Path 2: to sink 34638, distance: 24.78 km
+2025-04-02 20:16:15,910 - INFO -   Path 3: to sink 34655, distance: 33.85 km
+2025-04-02 20:16:15,910 - INFO - Processing centroid 33625...
+2025-04-02 20:16:16,445 - INFO - Found 3 paths from centroid 33625 to different sinks
+2025-04-02 20:16:16,446 - INFO -   Path 1: to sink 34638, distance: 25.17 km
+2025-04-02 20:16:16,446 - INFO -   Path 2: to sink 34655, distance: 27.04 km
+2025-04-02 20:16:16,446 - INFO -   Path 3: to sink 33544, distance: 34.57 km
+2025-04-02 20:16:16,446 - INFO - Processing centroid 33614...
+2025-04-02 20:16:16,976 - INFO - Found 3 paths from centroid 33614 to different sinks
+2025-04-02 20:16:16,976 - INFO -   Path 1: to sink 34638, distance: 34.39 km
+2025-04-02 20:16:16,976 - INFO -   Path 2: to sink 33544, distance: 37.10 km
+2025-04-02 20:16:16,976 - INFO -   Path 3: to sink 34655, distance: 38.35 km
+2025-04-02 20:16:16,976 - INFO - Processing centroid 33592...
+2025-04-02 20:16:17,279 - INFO - Found 3 paths from centroid 33592 to different sinks
+2025-04-02 20:16:17,279 - INFO -   Path 1: to sink 33541, distance: 20.67 km
+2025-04-02 20:16:17,279 - INFO -   Path 2: to sink 33540, distance: 23.83 km
+2025-04-02 20:16:17,279 - INFO -   Path 3: to sink 33849, distance: 30.75 km
+2025-04-02 20:16:17,279 - INFO - Processing centroid 33619...
+2025-04-02 20:16:17,852 - INFO - Found 3 paths from centroid 33619 to different sinks
+2025-04-02 20:16:17,852 - INFO -   Path 1: to sink 33544, distance: 47.82 km
+2025-04-02 20:16:17,852 - INFO -   Path 2: to sink 33811, distance: 48.04 km
+2025-04-02 20:16:17,852 - INFO -   Path 3: to sink 33541, distance: 49.27 km
+2025-04-02 20:16:17,853 - INFO - Processing centroid 33624...
+2025-04-02 20:16:18,417 - INFO - Found 3 paths from centroid 33624 to different sinks
+2025-04-02 20:16:18,417 - INFO -   Path 1: to sink 34638, distance: 27.41 km
+2025-04-02 20:16:18,417 - INFO -   Path 2: to sink 33544, distance: 30.12 km
+2025-04-02 20:16:18,417 - INFO -   Path 3: to sink 34655, distance: 31.36 km
+2025-04-02 20:16:18,417 - INFO - Processing centroid 33603...
+2025-04-02 20:16:19,050 - INFO - Found 3 paths from centroid 33603 to different sinks
+2025-04-02 20:16:19,050 - INFO -   Path 1: to sink 33544, distance: 37.81 km
+2025-04-02 20:16:19,050 - INFO -   Path 2: to sink 34638, distance: 38.39 km
+2025-04-02 20:16:19,050 - INFO -   Path 3: to sink 33541, distance: 47.42 km
+2025-04-02 20:16:19,050 - INFO - Processing centroid 33567...
+2025-04-02 20:16:19,422 - INFO - Found 3 paths from centroid 33567 to different sinks
+2025-04-02 20:16:19,422 - INFO -   Path 1: to sink 33811, distance: 17.98 km
+2025-04-02 20:16:19,422 - INFO -   Path 2: to sink 33860, distance: 24.73 km
+2025-04-02 20:16:19,422 - INFO -   Path 3: to sink 33815, distance: 25.84 km
+2025-04-02 20:16:19,422 - INFO - Processing centroid 33573...
+2025-04-02 20:16:20,055 - INFO - Found 3 paths from centroid 33573 to different sinks
+2025-04-02 20:16:20,055 - INFO -   Path 1: to sink 34221, distance: 27.88 km
+2025-04-02 20:16:20,055 - INFO -   Path 2: to sink 34219, distance: 31.41 km
+2025-04-02 20:16:20,055 - INFO -   Path 3: to sink 33834, distance: 50.82 km
+2025-04-02 20:16:20,055 - INFO - Processing centroid 33617...
+2025-04-02 20:16:20,608 - INFO - Found 3 paths from centroid 33617 to different sinks
+2025-04-02 20:16:20,608 - INFO -   Path 1: to sink 33544, distance: 31.99 km
+2025-04-02 20:16:20,608 - INFO -   Path 2: to sink 33541, distance: 33.44 km
+2025-04-02 20:16:20,608 - INFO -   Path 3: to sink 34638, distance: 36.45 km
+2025-04-02 20:16:20,608 - INFO - Processing centroid 33566...
+2025-04-02 20:16:20,888 - INFO - Found 3 paths from centroid 33566 to different sinks
+2025-04-02 20:16:20,889 - INFO -   Path 1: to sink 33815, distance: 18.05 km
+2025-04-02 20:16:20,889 - INFO -   Path 2: to sink 33811, distance: 18.21 km
+2025-04-02 20:16:20,889 - INFO -   Path 3: to sink 33860, distance: 30.08 km
+2025-04-02 20:16:20,889 - INFO - Processing centroid 33556...
+2025-04-02 20:16:21,117 - INFO - Found 3 paths from centroid 33556 to different sinks
+2025-04-02 20:16:21,117 - INFO -   Path 1: to sink 34655, distance: 14.42 km
+2025-04-02 20:16:21,117 - INFO -   Path 2: to sink 34638, distance: 17.78 km
+2025-04-02 20:16:21,117 - INFO -   Path 3: to sink 33544, distance: 31.18 km
+2025-04-02 20:16:21,118 - INFO - Processing centroid 33579...
+2025-04-02 20:16:21,690 - INFO - Found 3 paths from centroid 33579 to different sinks
+2025-04-02 20:16:21,691 - INFO -   Path 1: to sink 34219, distance: 43.29 km
+2025-04-02 20:16:21,691 - INFO -   Path 2: to sink 34221, distance: 45.08 km
+2025-04-02 20:16:21,691 - INFO -   Path 3: to sink 33834, distance: 51.59 km
+2025-04-02 20:16:21,691 - INFO - Processing centroid 33629...
+2025-04-02 20:16:22,198 - INFO - Found 3 paths from centroid 33629 to different sinks
+2025-04-02 20:16:22,198 - INFO -   Path 1: to sink 34221, distance: 43.24 km
+2025-04-02 20:16:22,198 - INFO -   Path 2: to sink 34638, distance: 45.52 km
+2025-04-02 20:16:22,198 - INFO -   Path 3: to sink 33544, distance: 48.23 km
+2025-04-02 20:16:22,198 - INFO - Processing centroid 33558...
+2025-04-02 20:16:22,279 - INFO - Found 3 paths from centroid 33558 to different sinks
+2025-04-02 20:16:22,279 - INFO -   Path 1: to sink 34638, distance: 14.81 km
+2025-04-02 20:16:22,279 - INFO -   Path 2: to sink 34655, distance: 18.75 km
+2025-04-02 20:16:22,279 - INFO -   Path 3: to sink 33544, distance: 21.01 km
+2025-04-02 20:16:22,279 - INFO - Processing centroid 33634...
+2025-04-02 20:16:22,921 - INFO - Found 3 paths from centroid 33634 to different sinks
+2025-04-02 20:16:22,921 - INFO -   Path 1: to sink 34638, distance: 33.82 km
+2025-04-02 20:16:22,921 - INFO -   Path 2: to sink 34655, distance: 35.69 km
+2025-04-02 20:16:22,921 - INFO -   Path 3: to sink 33544, distance: 43.22 km
+2025-04-02 20:16:22,921 - INFO - Processing centroid 33572...
+2025-04-02 20:16:23,543 - INFO - Found 3 paths from centroid 33572 to different sinks
+2025-04-02 20:16:23,543 - INFO -   Path 1: to sink 34221, distance: 30.37 km
+2025-04-02 20:16:23,543 - INFO -   Path 2: to sink 34219, distance: 46.49 km
+2025-04-02 20:16:23,543 - INFO -   Path 3: to sink 33834, distance: 65.91 km
+2025-04-02 20:16:23,543 - INFO - Processing centroid 33612...
+2025-04-02 20:16:24,184 - INFO - Found 3 paths from centroid 33612 to different sinks
+2025-04-02 20:16:24,184 - INFO -   Path 1: to sink 33544, distance: 28.40 km
+2025-04-02 20:16:24,184 - INFO -   Path 2: to sink 34638, distance: 29.00 km
+2025-04-02 20:16:24,184 - INFO -   Path 3: to sink 33541, distance: 37.94 km
+2025-04-02 20:16:24,184 - INFO - Processing centroid 33607...
+2025-04-02 20:16:24,851 - INFO - Found 3 paths from centroid 33607 to different sinks
+2025-04-02 20:16:24,851 - INFO -   Path 1: to sink 34638, distance: 38.67 km
+2025-04-02 20:16:24,851 - INFO -   Path 2: to sink 34655, distance: 40.54 km
+2025-04-02 20:16:24,851 - INFO -   Path 3: to sink 33544, distance: 46.08 km
+2025-04-02 20:16:24,851 - INFO - Processing centroid 33534...
+2025-04-02 20:16:25,441 - INFO - Found 3 paths from centroid 33534 to different sinks
+2025-04-02 20:16:25,441 - INFO -   Path 1: to sink 34221, distance: 38.88 km
+2025-04-02 20:16:25,441 - INFO -   Path 2: to sink 34219, distance: 47.35 km
+2025-04-02 20:16:25,441 - INFO -   Path 3: to sink 33811, distance: 58.73 km
+2025-04-02 20:16:25,441 - INFO - Processing centroid 33626...
+2025-04-02 20:16:25,984 - INFO - Found 3 paths from centroid 33626 to different sinks
+2025-04-02 20:16:25,984 - INFO -   Path 1: to sink 34655, distance: 27.58 km
+2025-04-02 20:16:25,984 - INFO -   Path 2: to sink 34638, distance: 30.63 km
+2025-04-02 20:16:25,984 - INFO -   Path 3: to sink 33544, distance: 41.86 km
+2025-04-02 20:16:25,984 - INFO - Processing centroid 33547...
+2025-04-02 20:16:26,416 - INFO - Found 3 paths from centroid 33547 to different sinks
+2025-04-02 20:16:26,416 - INFO -   Path 1: to sink 34219, distance: 32.57 km
+2025-04-02 20:16:26,416 - INFO -   Path 2: to sink 33834, distance: 35.28 km
+2025-04-02 20:16:26,416 - INFO -   Path 3: to sink 33860, distance: 35.50 km
+2025-04-02 20:16:26,417 - INFO - Processing centroid 33602...
+2025-04-02 20:16:27,058 - INFO - Found 3 paths from centroid 33602 to different sinks
+2025-04-02 20:16:27,059 - INFO -   Path 1: to sink 33544, distance: 40.62 km
+2025-04-02 20:16:27,059 - INFO -   Path 2: to sink 34638, distance: 41.19 km
+2025-04-02 20:16:27,059 - INFO -   Path 3: to sink 33541, distance: 48.37 km
+2025-04-02 20:16:27,059 - INFO - Processing centroid 33605...
+2025-04-02 20:16:27,690 - INFO - Found 3 paths from centroid 33605 to different sinks
+2025-04-02 20:16:27,691 - INFO -   Path 1: to sink 33544, distance: 43.29 km
+2025-04-02 20:16:27,691 - INFO -   Path 2: to sink 34638, distance: 43.86 km
+2025-04-02 20:16:27,691 - INFO -   Path 3: to sink 33541, distance: 46.50 km
+2025-04-02 20:16:27,691 - INFO - Processing centroid 33637...
+2025-04-02 20:16:28,227 - INFO - Found 3 paths from centroid 33637 to different sinks
+2025-04-02 20:16:28,227 - INFO -   Path 1: to sink 33544, distance: 27.85 km
+2025-04-02 20:16:28,227 - INFO -   Path 2: to sink 33541, distance: 29.30 km
+2025-04-02 20:16:28,227 - INFO -   Path 3: to sink 33540, distance: 34.93 km
+2025-04-02 20:16:28,227 - INFO - Processing centroid 33635...
+2025-04-02 20:16:28,851 - INFO - Found 3 paths from centroid 33635 to different sinks
+2025-04-02 20:16:28,851 - INFO -   Path 1: to sink 34655, distance: 36.07 km
+2025-04-02 20:16:28,851 - INFO -   Path 2: to sink 34638, distance: 39.12 km
+2025-04-02 20:16:28,851 - INFO -   Path 3: to sink 33544, distance: 50.35 km
+2025-04-02 20:16:28,851 - INFO - Processing centroid 33594...
+2025-04-02 20:16:29,268 - INFO - Found 3 paths from centroid 33594 to different sinks
+2025-04-02 20:16:29,268 - INFO -   Path 1: to sink 33811, distance: 29.22 km
+2025-04-02 20:16:29,269 - INFO -   Path 2: to sink 33860, distance: 35.98 km
+2025-04-02 20:16:29,269 - INFO -   Path 3: to sink 33815, distance: 37.08 km
+2025-04-02 20:16:29,269 - INFO - Processing centroid 33570...
+2025-04-02 20:16:29,797 - INFO - Found 3 paths from centroid 33570 to different sinks
+2025-04-02 20:16:29,797 - INFO -   Path 1: to sink 34221, distance: 18.58 km
+2025-04-02 20:16:29,797 - INFO -   Path 2: to sink 34219, distance: 41.48 km
+2025-04-02 20:16:29,797 - INFO -   Path 3: to sink 33834, distance: 62.38 km
+2025-04-02 20:16:29,797 - INFO - Processing centroid 33618...
+2025-04-02 20:16:30,363 - INFO - Found 3 paths from centroid 33618 to different sinks
+2025-04-02 20:16:30,363 - INFO -   Path 1: to sink 34638, distance: 28.66 km
+2025-04-02 20:16:30,363 - INFO -   Path 2: to sink 33544, distance: 31.37 km
+2025-04-02 20:16:30,363 - INFO -   Path 3: to sink 34655, distance: 32.61 km
+2025-04-02 20:16:30,363 - INFO - Processing centroid 33616...
+2025-04-02 20:16:30,450 - INFO - Found 3 paths from centroid 33616 to different sinks
+2025-04-02 20:16:30,450 - INFO -   Path 1: to sink 34221, distance: 40.36 km
+2025-04-02 20:16:30,450 - INFO -   Path 2: to sink 34655, distance: 50.53 km
+2025-04-02 20:16:30,450 - INFO -   Path 3: to sink 34219, distance: 50.54 km
+2025-04-02 20:16:30,450 - INFO - Processing centroid 33549...
+2025-04-02 20:16:30,618 - INFO - Found 3 paths from centroid 33549 to different sinks
+2025-04-02 20:16:30,618 - INFO -   Path 1: to sink 34638, distance: 18.90 km
+2025-04-02 20:16:30,618 - INFO -   Path 2: to sink 33544, distance: 19.70 km
+2025-04-02 20:16:30,618 - INFO -   Path 3: to sink 34655, distance: 27.97 km
+2025-04-02 20:16:30,619 - INFO - Processing centroid 33510...
+2025-04-02 20:16:31,130 - INFO - Found 3 paths from centroid 33510 to different sinks
+2025-04-02 20:16:31,130 - INFO -   Path 1: to sink 33811, distance: 37.86 km
+2025-04-02 20:16:31,130 - INFO -   Path 2: to sink 33860, distance: 44.62 km
+2025-04-02 20:16:31,130 - INFO -   Path 3: to sink 33815, distance: 45.73 km
+2025-04-02 20:16:31,130 - INFO - Processing centroid 33578...
+2025-04-02 20:16:31,731 - INFO - Found 3 paths from centroid 33578 to different sinks
+2025-04-02 20:16:31,732 - INFO -   Path 1: to sink 34221, distance: 43.68 km
+2025-04-02 20:16:31,732 - INFO -   Path 2: to sink 34219, distance: 48.73 km
+2025-04-02 20:16:31,732 - INFO -   Path 3: to sink 33811, distance: 49.15 km
+2025-04-02 20:16:31,732 - INFO - Processing centroid 33611...
+2025-04-02 20:16:32,043 - INFO - Found 3 paths from centroid 33611 to different sinks
+2025-04-02 20:16:32,043 - INFO -   Path 1: to sink 34221, distance: 38.89 km
+2025-04-02 20:16:32,043 - INFO -   Path 2: to sink 34655, distance: 49.06 km
+2025-04-02 20:16:32,043 - INFO -   Path 3: to sink 34219, distance: 49.08 km
+2025-04-02 20:16:32,043 - INFO - Processing centroid 33565...
+2025-04-02 20:16:32,213 - INFO - Found 3 paths from centroid 33565 to different sinks
+2025-04-02 20:16:32,213 - INFO -   Path 1: to sink 33540, distance: 16.59 km
+2025-04-02 20:16:32,214 - INFO -   Path 2: to sink 33541, distance: 19.78 km
+2025-04-02 20:16:32,214 - INFO -   Path 3: to sink 33849, distance: 20.99 km
+2025-04-02 20:16:32,214 - INFO - Processing centroid 33647...
+2025-04-02 20:16:32,518 - INFO - Found 3 paths from centroid 33647 to different sinks
+2025-04-02 20:16:32,518 - INFO -   Path 1: to sink 33544, distance: 15.23 km
+2025-04-02 20:16:32,518 - INFO -   Path 2: to sink 33541, distance: 21.24 km
+2025-04-02 20:16:32,518 - INFO -   Path 3: to sink 34638, distance: 27.92 km
+2025-04-02 20:16:32,519 - INFO - Processing centroid 33596...
+2025-04-02 20:16:33,072 - INFO - Found 3 paths from centroid 33596 to different sinks
+2025-04-02 20:16:33,072 - INFO -   Path 1: to sink 33811, distance: 39.60 km
+2025-04-02 20:16:33,072 - INFO -   Path 2: to sink 33860, distance: 46.36 km
+2025-04-02 20:16:33,072 - INFO -   Path 3: to sink 33815, distance: 47.46 km
+2025-04-02 20:16:33,072 - INFO - Processing centroid 33615...
+2025-04-02 20:16:33,697 - INFO - Found 3 paths from centroid 33615 to different sinks
+2025-04-02 20:16:33,697 - INFO -   Path 1: to sink 34655, distance: 40.34 km
+2025-04-02 20:16:33,697 - INFO -   Path 2: to sink 34638, distance: 41.09 km
+2025-04-02 20:16:33,697 - INFO -   Path 3: to sink 33544, distance: 48.61 km
+2025-04-02 20:16:33,698 - INFO - Processing centroid 33598...
+2025-04-02 20:16:34,224 - INFO - Found 3 paths from centroid 33598 to different sinks
+2025-04-02 20:16:34,224 - INFO -   Path 1: to sink 34219, distance: 34.78 km
+2025-04-02 20:16:34,224 - INFO -   Path 2: to sink 34221, distance: 36.57 km
+2025-04-02 20:16:34,224 - INFO -   Path 3: to sink 33834, distance: 42.32 km
+2025-04-02 20:16:34,224 - INFO - Processing centroid 33511...
+2025-04-02 20:16:34,834 - INFO - Found 3 paths from centroid 33511 to different sinks
+2025-04-02 20:16:34,834 - INFO -   Path 1: to sink 33811, distance: 47.59 km
+2025-04-02 20:16:34,834 - INFO -   Path 2: to sink 33544, distance: 54.16 km
+2025-04-02 20:16:34,834 - INFO -   Path 3: to sink 33860, distance: 54.34 km
+2025-04-02 20:16:34,834 - INFO - Processing centroid 33548...
+2025-04-02 20:16:35,011 - INFO - Found 3 paths from centroid 33548 to different sinks
+2025-04-02 20:16:35,011 - INFO -   Path 1: to sink 34638, distance: 19.19 km
+2025-04-02 20:16:35,011 - INFO -   Path 2: to sink 33544, distance: 19.99 km
+2025-04-02 20:16:35,011 - INFO -   Path 3: to sink 34655, distance: 28.26 km
+2025-04-02 20:16:35,013 - INFO - Pathfinding completed in 24.97 seconds
+2025-04-02 20:16:35,013 - INFO - Summary saved to /Users/jackcoon/Documents/OEM/TampaCode/OSMTampaMapping/data/results/evacuation_summary.txt
+2025-04-02 20:16:35,013 - INFO - Analyzing evacuation flow using 12-phase evacuation model with OR-Tools...
+2025-04-02 20:16:35,014 - INFO - Planning evacuation for 1,483,281 people from 51 zip codes
+2025-04-02 20:16:35,014 - INFO - Dividing into 12 evacuation waves
+2025-04-02 20:16:35,014 - INFO - 
+Processing Phase 1 with 5 source nodes
+2025-04-02 20:16:35,201 - INFO -   Phase 1 source: 33647 with population 72,323 (using 18,080 for calculation)
+2025-04-02 20:16:35,201 - INFO -   Phase 1 source: 33511 with population 58,987 (using 14,746 for calculation)
+2025-04-02 20:16:35,201 - INFO -   Phase 1 source: 33578 with population 55,724 (using 13,931 for calculation)
+2025-04-02 20:16:35,201 - INFO -   Phase 1 source: 33612 with population 50,697 (using 12,674 for calculation)
+2025-04-02 20:16:35,201 - INFO -   Phase 1 source: 33617 with population 48,987 (using 12,246 for calculation)
+2025-04-02 20:16:35,201 - INFO -   Connecting sink s0 to super sink with capacity 716,770
+2025-04-02 20:16:35,201 - INFO -   Connecting sink s1 to super sink with capacity 716,770
+2025-04-02 20:16:35,201 - INFO -   Connecting sink s2 to super sink with capacity 716,770
+2025-04-02 20:16:35,201 - INFO -   Connecting sink s3 to super sink with capacity 716,770
+2025-04-02 20:16:35,201 - INFO -   Connecting sink s4 to super sink with capacity 716,770
+2025-04-02 20:16:35,201 - INFO -   Connecting sink s5 to super sink with capacity 716,770
+2025-04-02 20:16:35,201 - INFO -   Connecting sink s6 to super sink with capacity 716,770
+2025-04-02 20:16:35,201 - INFO -   Connecting sink s7 to super sink with capacity 716,770
+2025-04-02 20:16:35,201 - INFO -   Connecting sink s8 to super sink with capacity 716,770
+2025-04-02 20:16:35,201 - INFO -   Connecting sink s9 to super sink with capacity 716,770
+2025-04-02 20:16:35,201 - INFO -   Connecting sink s10 to super sink with capacity 716,770
+2025-04-02 20:16:35,201 - INFO -   Connecting sink s11 to super sink with capacity 716,770
+2025-04-02 20:16:35,201 - INFO - Phase 1 original population: 286,718
+2025-04-02 20:16:35,201 - INFO - Phase 1 scaled population for calculation: 71,677
+2025-04-02 20:16:35,373 - INFO -   Starting OR-Tools MinCostFlow computation...
+2025-04-02 20:16:36,708 - INFO -   OR-Tools computation completed in 1.33 seconds
+2025-04-02 20:16:36,708 - INFO -   Optimal solution found!
+2025-04-02 20:16:36,786 - INFO -   Used 1035 flow paths
+2025-04-02 20:16:36,786 - INFO -   Bottleneck: t_r1867_end → r752_25 with flow 27,000 people/hour
+2025-04-02 20:16:36,786 - INFO -   Bottleneck road type: TERMINAL_CONNECTOR
+2025-04-02 20:16:36,787 - INFO -   Found 170 congested road segments (>80% capacity)
+2025-04-02 20:16:36,787 - INFO -     1. r49_0 → r49_1 (P): 16,000/16,000 (100.0%)
+2025-04-02 20:16:36,787 - INFO -     2. r67_11 → r67_10 (M): 14,000/14,000 (100.0%)
+2025-04-02 20:16:36,787 - INFO -     3. r67_12 → r67_11 (M): 14,000/14,000 (100.0%)
+2025-04-02 20:16:36,787 - INFO -     4. r116_7 → r116_6 (M): 14,000/14,000 (100.0%)
+2025-04-02 20:16:36,787 - INFO -     5. r134_2 → r134_1 (M): 14,000/14,000 (100.0%)
+2025-04-02 20:16:36,787 - INFO - Phase 1 evacuation time: 10.62 hours (637.1 minutes)
+2025-04-02 20:16:36,787 - INFO -   Note: Time accounts for full population of 286,718 people
+2025-04-02 20:16:36,787 - INFO - Phase 1 calculation took 1.77 seconds
+2025-04-02 20:16:36,787 - INFO - 
+Processing Phase 2 with 5 source nodes
+2025-04-02 20:16:37,013 - INFO -   Phase 2 source: 33615 with population 48,849 (using 12,212 for calculation)
+2025-04-02 20:16:37,013 - INFO -   Phase 2 source: 33614 with population 46,844 (using 11,711 for calculation)
+2025-04-02 20:16:37,013 - INFO -   Phase 2 source: 33610 with population 45,622 (using 11,405 for calculation)
+2025-04-02 20:16:37,013 - INFO -   Phase 2 source: 33579 with population 42,456 (using 10,614 for calculation)
+2025-04-02 20:16:37,013 - INFO -   Phase 2 source: 33624 with population 41,661 (using 10,415 for calculation)
+2025-04-02 20:16:37,013 - INFO -   Connecting sink s0 to super sink with capacity 563,570
+2025-04-02 20:16:37,013 - INFO -   Connecting sink s1 to super sink with capacity 563,570
+2025-04-02 20:16:37,013 - INFO -   Connecting sink s2 to super sink with capacity 563,570
+2025-04-02 20:16:37,013 - INFO -   Connecting sink s3 to super sink with capacity 563,570
+2025-04-02 20:16:37,013 - INFO -   Connecting sink s4 to super sink with capacity 563,570
+2025-04-02 20:16:37,013 - INFO -   Connecting sink s5 to super sink with capacity 563,570
+2025-04-02 20:16:37,013 - INFO -   Connecting sink s6 to super sink with capacity 563,570
+2025-04-02 20:16:37,013 - INFO -   Connecting sink s7 to super sink with capacity 563,570
+2025-04-02 20:16:37,013 - INFO -   Connecting sink s8 to super sink with capacity 563,570
+2025-04-02 20:16:37,013 - INFO -   Connecting sink s9 to super sink with capacity 563,570
+2025-04-02 20:16:37,013 - INFO -   Connecting sink s10 to super sink with capacity 563,570
+2025-04-02 20:16:37,013 - INFO -   Connecting sink s11 to super sink with capacity 563,570
+2025-04-02 20:16:37,013 - INFO - Phase 2 original population: 225,432
+2025-04-02 20:16:37,013 - INFO - Phase 2 scaled population for calculation: 56,357
+2025-04-02 20:16:37,188 - INFO -   Starting OR-Tools MinCostFlow computation...
+2025-04-02 20:16:38,055 - INFO -   OR-Tools computation completed in 0.87 seconds
+2025-04-02 20:16:38,055 - INFO -   Optimal solution found!
+2025-04-02 20:16:38,131 - INFO -   Used 588 flow paths
+2025-04-02 20:16:38,131 - INFO -   Bottleneck: r398_10 → r398_11 with flow 35,328 people/hour
+2025-04-02 20:16:38,131 - INFO -   Bottleneck road type: H
+2025-04-02 20:16:38,131 - INFO -   Found 25 congested road segments (>80% capacity)
+2025-04-02 20:16:38,131 - INFO -     1. r2377_2 → r2377_1 (R): 6,000/6,000 (100.0%)
+2025-04-02 20:16:38,131 - INFO -     2. r398_10 → r398_11 (H): 35,328/40,000 (88.3%)
+2025-04-02 20:16:38,131 - INFO -     3. r398_11 → r398_12 (H): 35,328/40,000 (88.3%)
+2025-04-02 20:16:38,131 - INFO -     4. r398_12 → r398_13 (H): 35,328/40,000 (88.3%)
+2025-04-02 20:16:38,131 - INFO -     5. r398_22 → r398_23 (H): 35,328/40,000 (88.3%)
+2025-04-02 20:16:38,131 - INFO - Phase 2 evacuation time: 6.38 hours (382.9 minutes)
+2025-04-02 20:16:38,131 - INFO -   Note: Time accounts for full population of 225,432 people
+2025-04-02 20:16:38,131 - INFO - Phase 2 calculation took 1.34 seconds
+2025-04-02 20:16:38,131 - INFO - 
+Processing Phase 3 with 5 source nodes
+2025-04-02 20:16:38,317 - INFO -   Phase 3 source: 33604 with population 40,328 (using 10,082 for calculation)
+2025-04-02 20:16:38,317 - INFO -   Phase 3 source: 33619 with population 39,272 (using 9,818 for calculation)
+2025-04-02 20:16:38,317 - INFO -   Phase 3 source: 33613 with population 37,354 (using 9,338 for calculation)
+2025-04-02 20:16:38,317 - INFO -   Phase 3 source: 33594 with population 35,824 (using 8,956 for calculation)
+2025-04-02 20:16:38,317 - INFO -   Phase 3 source: 33611 with population 34,877 (using 8,719 for calculation)
+2025-04-02 20:16:38,317 - INFO -   Connecting sink s0 to super sink with capacity 469,130
+2025-04-02 20:16:38,317 - INFO -   Connecting sink s1 to super sink with capacity 469,130
+2025-04-02 20:16:38,317 - INFO -   Connecting sink s2 to super sink with capacity 469,130
+2025-04-02 20:16:38,317 - INFO -   Connecting sink s3 to super sink with capacity 469,130
+2025-04-02 20:16:38,317 - INFO -   Connecting sink s4 to super sink with capacity 469,130
+2025-04-02 20:16:38,317 - INFO -   Connecting sink s5 to super sink with capacity 469,130
+2025-04-02 20:16:38,317 - INFO -   Connecting sink s6 to super sink with capacity 469,130
+2025-04-02 20:16:38,317 - INFO -   Connecting sink s7 to super sink with capacity 469,130
+2025-04-02 20:16:38,317 - INFO -   Connecting sink s8 to super sink with capacity 469,130
+2025-04-02 20:16:38,317 - INFO -   Connecting sink s9 to super sink with capacity 469,130
+2025-04-02 20:16:38,317 - INFO -   Connecting sink s10 to super sink with capacity 469,130
+2025-04-02 20:16:38,317 - INFO -   Connecting sink s11 to super sink with capacity 469,130
+2025-04-02 20:16:38,317 - INFO - Phase 3 original population: 187,655
+2025-04-02 20:16:38,317 - INFO - Phase 3 scaled population for calculation: 46,913
+2025-04-02 20:16:38,489 - INFO -   Starting OR-Tools MinCostFlow computation...
+2025-04-02 20:16:39,787 - INFO -   OR-Tools computation completed in 1.30 seconds
+2025-04-02 20:16:39,787 - INFO -   Optimal solution found!
+2025-04-02 20:16:39,863 - INFO -   Used 586 flow paths
+2025-04-02 20:16:39,863 - INFO -   Bottleneck: r752_25 → r1867_143 with flow 19,420 people/hour
+2025-04-02 20:16:39,863 - INFO -   Bottleneck road type: CONNECTOR
+2025-04-02 20:16:39,863 - INFO -   Found 9 congested road segments (>80% capacity)
+2025-04-02 20:16:39,863 - INFO -     1. r43_1 → r43_0 (P): 16,000/16,000 (100.0%)
+2025-04-02 20:16:39,863 - INFO -     2. r134_2 → r134_1 (M): 14,000/14,000 (100.0%)
+2025-04-02 20:16:39,863 - INFO -     3. r134_3 → r134_2 (M): 14,000/14,000 (100.0%)
+2025-04-02 20:16:39,863 - INFO -     4. r183_1 → r183_0 (M): 14,000/14,000 (100.0%)
+2025-04-02 20:16:39,863 - INFO -     5. r183_2 → r183_1 (M): 14,000/14,000 (100.0%)
+2025-04-02 20:16:39,863 - INFO - Phase 3 evacuation time: 9.66 hours (579.8 minutes)
+2025-04-02 20:16:39,863 - INFO -   Note: Time accounts for full population of 187,655 people
+2025-04-02 20:16:39,863 - INFO - Phase 3 calculation took 1.73 seconds
+2025-04-02 20:16:39,863 - INFO - 
+Processing Phase 4 with 4 source nodes
+2025-04-02 20:16:40,123 - INFO -   Phase 4 source: 33570 with population 32,620 (using 8,155 for calculation)
+2025-04-02 20:16:40,124 - INFO -   Phase 4 source: 33626 with population 30,736 (using 7,684 for calculation)
+2025-04-02 20:16:40,124 - INFO -   Phase 4 source: 33547 with population 30,431 (using 7,607 for calculation)
+2025-04-02 20:16:40,124 - INFO -   Phase 4 source: 33556 with population 30,386 (using 7,596 for calculation)
+2025-04-02 20:16:40,124 - INFO -   Connecting sink s0 to super sink with capacity 310,420
+2025-04-02 20:16:40,124 - INFO -   Connecting sink s1 to super sink with capacity 310,420
+2025-04-02 20:16:40,124 - INFO -   Connecting sink s2 to super sink with capacity 310,420
+2025-04-02 20:16:40,124 - INFO -   Connecting sink s3 to super sink with capacity 310,420
+2025-04-02 20:16:40,124 - INFO -   Connecting sink s4 to super sink with capacity 310,420
+2025-04-02 20:16:40,124 - INFO -   Connecting sink s5 to super sink with capacity 310,420
+2025-04-02 20:16:40,124 - INFO -   Connecting sink s6 to super sink with capacity 310,420
+2025-04-02 20:16:40,124 - INFO -   Connecting sink s7 to super sink with capacity 310,420
+2025-04-02 20:16:40,124 - INFO -   Connecting sink s8 to super sink with capacity 310,420
+2025-04-02 20:16:40,124 - INFO -   Connecting sink s9 to super sink with capacity 310,420
+2025-04-02 20:16:40,124 - INFO -   Connecting sink s10 to super sink with capacity 310,420
+2025-04-02 20:16:40,124 - INFO -   Connecting sink s11 to super sink with capacity 310,420
+2025-04-02 20:16:40,124 - INFO - Phase 4 original population: 124,173
+2025-04-02 20:16:40,124 - INFO - Phase 4 scaled population for calculation: 31,042
+2025-04-02 20:16:40,298 - INFO -   Starting OR-Tools MinCostFlow computation...
+2025-04-02 20:16:40,784 - INFO -   OR-Tools computation completed in 0.49 seconds
+2025-04-02 20:16:40,784 - INFO -   Optimal solution found!
+2025-04-02 20:16:40,858 - INFO -   Used 270 flow paths
+2025-04-02 20:16:40,858 - INFO -   Bottleneck: t_r2355_end → r409_7 with flow 15,280 people/hour
+2025-04-02 20:16:40,858 - INFO -   Bottleneck road type: TERMINAL_CONNECTOR
+2025-04-02 20:16:40,858 - INFO -   Found 0 congested road segments (>80% capacity)
+2025-04-02 20:16:40,858 - INFO - Phase 4 evacuation time: 8.13 hours (487.6 minutes)
+2025-04-02 20:16:40,858 - INFO -   Note: Time accounts for full population of 124,173 people
+2025-04-02 20:16:40,858 - INFO - Phase 4 calculation took 0.99 seconds
+2025-04-02 20:16:40,858 - INFO - 
+Processing Phase 5 with 4 source nodes
+2025-04-02 20:16:41,044 - INFO -   Phase 5 source: 33510 with population 30,103 (using 7,525 for calculation)
+2025-04-02 20:16:41,044 - INFO -   Phase 5 source: 33558 with population 29,098 (using 7,274 for calculation)
+2025-04-02 20:16:41,044 - INFO -   Phase 5 source: 33625 with population 28,818 (using 7,204 for calculation)
+2025-04-02 20:16:41,044 - INFO -   Phase 5 source: 33596 with population 28,558 (using 7,139 for calculation)
+2025-04-02 20:16:41,044 - INFO -   Connecting sink s0 to super sink with capacity 291,420
+2025-04-02 20:16:41,044 - INFO -   Connecting sink s1 to super sink with capacity 291,420
+2025-04-02 20:16:41,044 - INFO -   Connecting sink s2 to super sink with capacity 291,420
+2025-04-02 20:16:41,044 - INFO -   Connecting sink s3 to super sink with capacity 291,420
+2025-04-02 20:16:41,044 - INFO -   Connecting sink s4 to super sink with capacity 291,420
+2025-04-02 20:16:41,044 - INFO -   Connecting sink s5 to super sink with capacity 291,420
+2025-04-02 20:16:41,044 - INFO -   Connecting sink s6 to super sink with capacity 291,420
+2025-04-02 20:16:41,045 - INFO -   Connecting sink s7 to super sink with capacity 291,420
+2025-04-02 20:16:41,045 - INFO -   Connecting sink s8 to super sink with capacity 291,420
+2025-04-02 20:16:41,045 - INFO -   Connecting sink s9 to super sink with capacity 291,420
+2025-04-02 20:16:41,045 - INFO -   Connecting sink s10 to super sink with capacity 291,420
+2025-04-02 20:16:41,045 - INFO -   Connecting sink s11 to super sink with capacity 291,420
+2025-04-02 20:16:41,045 - INFO - Phase 5 original population: 116,577
+2025-04-02 20:16:41,045 - INFO - Phase 5 scaled population for calculation: 29,142
+2025-04-02 20:16:41,222 - INFO -   Starting OR-Tools MinCostFlow computation...
+2025-04-02 20:16:42,313 - INFO -   OR-Tools computation completed in 1.09 seconds
+2025-04-02 20:16:42,313 - INFO -   Optimal solution found!
+2025-04-02 20:16:42,387 - INFO -   Used 522 flow paths
+2025-04-02 20:16:42,387 - INFO -   Bottleneck: r2290_5 → r2290_4 with flow 14,478 people/hour
+2025-04-02 20:16:42,387 - INFO -   Bottleneck road type: H
+2025-04-02 20:16:42,387 - INFO -   Found 0 congested road segments (>80% capacity)
+2025-04-02 20:16:42,387 - INFO - Phase 5 evacuation time: 8.05 hours (483.1 minutes)
+2025-04-02 20:16:42,387 - INFO -   Note: Time accounts for full population of 116,577 people
+2025-04-02 20:16:42,387 - INFO - Phase 5 calculation took 1.53 seconds
+2025-04-02 20:16:42,387 - INFO - 
+Processing Phase 6 with 4 source nodes
+2025-04-02 20:16:42,647 - INFO -   Phase 6 source: 33573 with population 28,491 (using 7,122 for calculation)
+2025-04-02 20:16:42,647 - INFO -   Phase 6 source: 33618 with population 28,416 (using 7,104 for calculation)
+2025-04-02 20:16:42,647 - INFO -   Phase 6 source: 33598 with population 27,978 (using 6,994 for calculation)
+2025-04-02 20:16:42,647 - INFO -   Phase 6 source: 33584 with population 27,863 (using 6,965 for calculation)
+2025-04-02 20:16:42,647 - INFO -   Connecting sink s0 to super sink with capacity 281,850
+2025-04-02 20:16:42,647 - INFO -   Connecting sink s1 to super sink with capacity 281,850
+2025-04-02 20:16:42,647 - INFO -   Connecting sink s2 to super sink with capacity 281,850
+2025-04-02 20:16:42,647 - INFO -   Connecting sink s3 to super sink with capacity 281,850
+2025-04-02 20:16:42,647 - INFO -   Connecting sink s4 to super sink with capacity 281,850
+2025-04-02 20:16:42,647 - INFO -   Connecting sink s5 to super sink with capacity 281,850
+2025-04-02 20:16:42,647 - INFO -   Connecting sink s6 to super sink with capacity 281,850
+2025-04-02 20:16:42,647 - INFO -   Connecting sink s7 to super sink with capacity 281,850
+2025-04-02 20:16:42,647 - INFO -   Connecting sink s8 to super sink with capacity 281,850
+2025-04-02 20:16:42,647 - INFO -   Connecting sink s9 to super sink with capacity 281,850
+2025-04-02 20:16:42,647 - INFO -   Connecting sink s10 to super sink with capacity 281,850
+2025-04-02 20:16:42,647 - INFO -   Connecting sink s11 to super sink with capacity 281,850
+2025-04-02 20:16:42,647 - INFO - Phase 6 original population: 112,748
+2025-04-02 20:16:42,647 - INFO - Phase 6 scaled population for calculation: 28,185
+2025-04-02 20:16:42,820 - INFO -   Starting OR-Tools MinCostFlow computation...
+2025-04-02 20:16:43,938 - INFO -   OR-Tools computation completed in 1.12 seconds
+2025-04-02 20:16:43,938 - INFO -   Optimal solution found!
+2025-04-02 20:16:44,012 - INFO -   Used 486 flow paths
+2025-04-02 20:16:44,012 - INFO -   Bottleneck: t_r1867_end → r752_25 with flow 14,069 people/hour
+2025-04-02 20:16:44,012 - INFO -   Bottleneck road type: TERMINAL_CONNECTOR
+2025-04-02 20:16:44,012 - INFO -   Found 0 congested road segments (>80% capacity)
+2025-04-02 20:16:44,012 - INFO - Phase 6 evacuation time: 8.01 hours (480.8 minutes)
+2025-04-02 20:16:44,012 - INFO -   Note: Time accounts for full population of 112,748 people
+2025-04-02 20:16:44,012 - INFO - Phase 6 calculation took 1.63 seconds
+2025-04-02 20:16:44,012 - INFO - 
+Processing Phase 7 with 4 source nodes
+2025-04-02 20:16:44,198 - INFO -   Phase 7 source: 33563 with population 26,874 (using 6,718 for calculation)
+2025-04-02 20:16:44,198 - INFO -   Phase 7 source: 33629 with population 26,625 (using 6,656 for calculation)
+2025-04-02 20:16:44,198 - INFO -   Phase 7 source: 33569 with population 26,189 (using 6,547 for calculation)
+2025-04-02 20:16:44,198 - INFO -   Phase 7 source: 33607 with population 24,257 (using 6,064 for calculation)
+2025-04-02 20:16:44,198 - INFO -   Connecting sink s0 to super sink with capacity 259,850
+2025-04-02 20:16:44,198 - INFO -   Connecting sink s1 to super sink with capacity 259,850
+2025-04-02 20:16:44,198 - INFO -   Connecting sink s2 to super sink with capacity 259,850
+2025-04-02 20:16:44,198 - INFO -   Connecting sink s3 to super sink with capacity 259,850
+2025-04-02 20:16:44,198 - INFO -   Connecting sink s4 to super sink with capacity 259,850
+2025-04-02 20:16:44,198 - INFO -   Connecting sink s5 to super sink with capacity 259,850
+2025-04-02 20:16:44,198 - INFO -   Connecting sink s6 to super sink with capacity 259,850
+2025-04-02 20:16:44,198 - INFO -   Connecting sink s7 to super sink with capacity 259,850
+2025-04-02 20:16:44,198 - INFO -   Connecting sink s8 to super sink with capacity 259,850
+2025-04-02 20:16:44,198 - INFO -   Connecting sink s9 to super sink with capacity 259,850
+2025-04-02 20:16:44,198 - INFO -   Connecting sink s10 to super sink with capacity 259,850
+2025-04-02 20:16:44,198 - INFO -   Connecting sink s11 to super sink with capacity 259,850
+2025-04-02 20:16:44,198 - INFO - Phase 7 original population: 103,945
+2025-04-02 20:16:44,198 - INFO - Phase 7 scaled population for calculation: 25,985
+2025-04-02 20:16:44,370 - INFO -   Starting OR-Tools MinCostFlow computation...
+2025-04-02 20:16:44,979 - INFO -   OR-Tools computation completed in 0.61 seconds
+2025-04-02 20:16:44,979 - INFO -   Optimal solution found!
+2025-04-02 20:16:45,056 - INFO -   Used 321 flow paths
+2025-04-02 20:16:45,056 - INFO -   Bottleneck: r11_2 → r184_5 with flow 6,718 people/hour
+2025-04-02 20:16:45,056 - INFO -   Bottleneck road type: CONNECTOR
+2025-04-02 20:16:45,056 - INFO -   Found 0 congested road segments (>80% capacity)
+2025-04-02 20:16:45,056 - INFO - Phase 7 evacuation time: 15.47 hours (928.3 minutes)
+2025-04-02 20:16:45,056 - INFO -   Note: Time accounts for full population of 103,945 people
+2025-04-02 20:16:45,056 - INFO - Phase 7 calculation took 1.04 seconds
+2025-04-02 20:16:45,056 - INFO - 
+Processing Phase 8 with 4 source nodes
+2025-04-02 20:16:45,320 - INFO -   Phase 8 source: 33572 with population 23,846 (using 5,961 for calculation)
+2025-04-02 20:16:45,320 - INFO -   Phase 8 source: 33634 with population 22,927 (using 5,731 for calculation)
+2025-04-02 20:16:45,320 - INFO -   Phase 8 source: 33566 with population 22,842 (using 5,710 for calculation)
+2025-04-02 20:16:45,320 - INFO -   Phase 8 source: 33606 with population 22,546 (using 5,636 for calculation)
+2025-04-02 20:16:45,320 - INFO -   Connecting sink s0 to super sink with capacity 230,380
+2025-04-02 20:16:45,320 - INFO -   Connecting sink s1 to super sink with capacity 230,380
+2025-04-02 20:16:45,320 - INFO -   Connecting sink s2 to super sink with capacity 230,380
+2025-04-02 20:16:45,320 - INFO -   Connecting sink s3 to super sink with capacity 230,380
+2025-04-02 20:16:45,321 - INFO -   Connecting sink s4 to super sink with capacity 230,380
+2025-04-02 20:16:45,321 - INFO -   Connecting sink s5 to super sink with capacity 230,380
+2025-04-02 20:16:45,321 - INFO -   Connecting sink s6 to super sink with capacity 230,380
+2025-04-02 20:16:45,321 - INFO -   Connecting sink s7 to super sink with capacity 230,380
+2025-04-02 20:16:45,321 - INFO -   Connecting sink s8 to super sink with capacity 230,380
+2025-04-02 20:16:45,321 - INFO -   Connecting sink s9 to super sink with capacity 230,380
+2025-04-02 20:16:45,321 - INFO -   Connecting sink s10 to super sink with capacity 230,380
+2025-04-02 20:16:45,321 - INFO -   Connecting sink s11 to super sink with capacity 230,380
+2025-04-02 20:16:45,321 - INFO - Phase 8 original population: 92,161
+2025-04-02 20:16:45,321 - INFO - Phase 8 scaled population for calculation: 23,038
+2025-04-02 20:16:45,497 - INFO -   Starting OR-Tools MinCostFlow computation...
+2025-04-02 20:16:46,103 - INFO -   OR-Tools computation completed in 0.61 seconds
+2025-04-02 20:16:46,103 - INFO -   Optimal solution found!
+2025-04-02 20:16:46,179 - INFO -   Used 395 flow paths
+2025-04-02 20:16:46,179 - INFO -   Bottleneck: r2_2 → r2_1 with flow 5,961 people/hour
+2025-04-02 20:16:46,179 - INFO -   Bottleneck road type: P
+2025-04-02 20:16:46,179 - INFO -   Found 0 congested road segments (>80% capacity)
+2025-04-02 20:16:46,179 - INFO - Phase 8 evacuation time: 15.46 hours (927.5 minutes)
+2025-04-02 20:16:46,179 - INFO -   Note: Time accounts for full population of 92,161 people
+2025-04-02 20:16:46,179 - INFO - Phase 8 calculation took 1.12 seconds
+2025-04-02 20:16:46,179 - INFO - 
+Processing Phase 9 with 4 source nodes
+2025-04-02 20:16:46,364 - INFO -   Phase 9 source: 33635 with population 19,917 (using 4,979 for calculation)
+2025-04-02 20:16:46,364 - INFO -   Phase 9 source: 33603 with population 19,545 (using 4,886 for calculation)
+2025-04-02 20:16:46,364 - INFO -   Phase 9 source: 33609 with population 18,411 (using 4,602 for calculation)
+2025-04-02 20:16:46,364 - INFO -   Phase 9 source: 33549 with population 18,016 (using 4,504 for calculation)
+2025-04-02 20:16:46,364 - INFO -   Connecting sink s0 to super sink with capacity 189,710
+2025-04-02 20:16:46,364 - INFO -   Connecting sink s1 to super sink with capacity 189,710
+2025-04-02 20:16:46,364 - INFO -   Connecting sink s2 to super sink with capacity 189,710
+2025-04-02 20:16:46,364 - INFO -   Connecting sink s3 to super sink with capacity 189,710
+2025-04-02 20:16:46,364 - INFO -   Connecting sink s4 to super sink with capacity 189,710
+2025-04-02 20:16:46,364 - INFO -   Connecting sink s5 to super sink with capacity 189,710
+2025-04-02 20:16:46,365 - INFO -   Connecting sink s6 to super sink with capacity 189,710
+2025-04-02 20:16:46,365 - INFO -   Connecting sink s7 to super sink with capacity 189,710
+2025-04-02 20:16:46,365 - INFO -   Connecting sink s8 to super sink with capacity 189,710
+2025-04-02 20:16:46,365 - INFO -   Connecting sink s9 to super sink with capacity 189,710
+2025-04-02 20:16:46,365 - INFO -   Connecting sink s10 to super sink with capacity 189,710
+2025-04-02 20:16:46,365 - INFO -   Connecting sink s11 to super sink with capacity 189,710
+2025-04-02 20:16:46,365 - INFO - Phase 9 original population: 75,889
+2025-04-02 20:16:46,365 - INFO - Phase 9 scaled population for calculation: 18,971
+2025-04-02 20:16:46,539 - INFO -   Starting OR-Tools MinCostFlow computation...
+2025-04-02 20:16:47,409 - INFO -   OR-Tools computation completed in 0.87 seconds
+2025-04-02 20:16:47,409 - INFO -   Optimal solution found!
+2025-04-02 20:16:47,484 - INFO -   Used 283 flow paths
+2025-04-02 20:16:47,484 - INFO -   Bottleneck: r398_7 → r398_8 with flow 14,467 people/hour
+2025-04-02 20:16:47,484 - INFO -   Bottleneck road type: H
+2025-04-02 20:16:47,484 - INFO -   Found 0 congested road segments (>80% capacity)
+2025-04-02 20:16:47,484 - INFO - Phase 9 evacuation time: 5.25 hours (314.7 minutes)
+2025-04-02 20:16:47,484 - INFO -   Note: Time accounts for full population of 75,889 people
+2025-04-02 20:16:47,484 - INFO - Phase 9 calculation took 1.31 seconds
+2025-04-02 20:16:47,485 - INFO - 
+Processing Phase 10 with 4 source nodes
+2025-04-02 20:16:47,747 - INFO -   Phase 10 source: 33565 with population 17,767 (using 4,441 for calculation)
+2025-04-02 20:16:47,747 - INFO -   Phase 10 source: 33602 with population 17,631 (using 4,407 for calculation)
+2025-04-02 20:16:47,747 - INFO -   Phase 10 source: 33637 with population 17,507 (using 4,376 for calculation)
+2025-04-02 20:16:47,747 - INFO -   Phase 10 source: 33534 with population 17,479 (using 4,369 for calculation)
+2025-04-02 20:16:47,747 - INFO -   Connecting sink s0 to super sink with capacity 175,930
+2025-04-02 20:16:47,747 - INFO -   Connecting sink s1 to super sink with capacity 175,930
+2025-04-02 20:16:47,747 - INFO -   Connecting sink s2 to super sink with capacity 175,930
+2025-04-02 20:16:47,747 - INFO -   Connecting sink s3 to super sink with capacity 175,930
+2025-04-02 20:16:47,747 - INFO -   Connecting sink s4 to super sink with capacity 175,930
+2025-04-02 20:16:47,747 - INFO -   Connecting sink s5 to super sink with capacity 175,930
+2025-04-02 20:16:47,747 - INFO -   Connecting sink s6 to super sink with capacity 175,930
+2025-04-02 20:16:47,748 - INFO -   Connecting sink s7 to super sink with capacity 175,930
+2025-04-02 20:16:47,748 - INFO -   Connecting sink s8 to super sink with capacity 175,930
+2025-04-02 20:16:47,748 - INFO -   Connecting sink s9 to super sink with capacity 175,930
+2025-04-02 20:16:47,748 - INFO -   Connecting sink s10 to super sink with capacity 175,930
+2025-04-02 20:16:47,748 - INFO -   Connecting sink s11 to super sink with capacity 175,930
+2025-04-02 20:16:47,748 - INFO - Phase 10 original population: 70,384
+2025-04-02 20:16:47,748 - INFO - Phase 10 scaled population for calculation: 17,593
+2025-04-02 20:16:47,922 - INFO -   Starting OR-Tools MinCostFlow computation...
+2025-04-02 20:16:48,792 - INFO -   OR-Tools computation completed in 0.87 seconds
+2025-04-02 20:16:48,792 - INFO -   Optimal solution found!
+2025-04-02 20:16:48,867 - INFO -   Used 451 flow paths
+2025-04-02 20:16:48,867 - INFO -   Bottleneck: r404_1 → r404_0 with flow 4,441 people/hour
+2025-04-02 20:16:48,867 - INFO -   Bottleneck road type: P
+2025-04-02 20:16:48,867 - INFO -   Found 0 congested road segments (>80% capacity)
+2025-04-02 20:16:48,867 - INFO - Phase 10 evacuation time: 15.85 hours (950.8 minutes)
+2025-04-02 20:16:48,867 - INFO -   Note: Time accounts for full population of 70,384 people
+2025-04-02 20:16:48,867 - INFO - Phase 10 calculation took 1.38 seconds
+2025-04-02 20:16:48,867 - INFO - 
+Processing Phase 11 with 4 source nodes
+2025-04-02 20:16:49,052 - INFO -   Phase 11 source: 33527 with population 16,342 (using 4,085 for calculation)
+2025-04-02 20:16:49,053 - INFO -   Phase 11 source: 33605 with population 16,166 (using 4,041 for calculation)
+2025-04-02 20:16:49,053 - INFO -   Phase 11 source: 33616 with population 14,918 (using 3,729 for calculation)
+2025-04-02 20:16:49,053 - INFO -   Phase 11 source: 33567 with population 12,499 (using 3,124 for calculation)
+2025-04-02 20:16:49,053 - INFO -   Connecting sink s0 to super sink with capacity 149,790
+2025-04-02 20:16:49,053 - INFO -   Connecting sink s1 to super sink with capacity 149,790
+2025-04-02 20:16:49,053 - INFO -   Connecting sink s2 to super sink with capacity 149,790
+2025-04-02 20:16:49,053 - INFO -   Connecting sink s3 to super sink with capacity 149,790
+2025-04-02 20:16:49,053 - INFO -   Connecting sink s4 to super sink with capacity 149,790
+2025-04-02 20:16:49,053 - INFO -   Connecting sink s5 to super sink with capacity 149,790
+2025-04-02 20:16:49,053 - INFO -   Connecting sink s6 to super sink with capacity 149,790
+2025-04-02 20:16:49,053 - INFO -   Connecting sink s7 to super sink with capacity 149,790
+2025-04-02 20:16:49,053 - INFO -   Connecting sink s8 to super sink with capacity 149,790
+2025-04-02 20:16:49,053 - INFO -   Connecting sink s9 to super sink with capacity 149,790
+2025-04-02 20:16:49,053 - INFO -   Connecting sink s10 to super sink with capacity 149,790
+2025-04-02 20:16:49,053 - INFO -   Connecting sink s11 to super sink with capacity 149,790
+2025-04-02 20:16:49,053 - INFO - Phase 11 original population: 59,925
+2025-04-02 20:16:49,053 - INFO - Phase 11 scaled population for calculation: 14,979
+2025-04-02 20:16:49,230 - INFO -   Starting OR-Tools MinCostFlow computation...
+2025-04-02 20:16:50,000 - INFO -   OR-Tools computation completed in 0.77 seconds
+2025-04-02 20:16:50,000 - INFO -   Optimal solution found!
+2025-04-02 20:16:50,074 - INFO -   Used 334 flow paths
+2025-04-02 20:16:50,074 - INFO -   Bottleneck: t_r2430_end → r897_1 with flow 7,770 people/hour
+2025-04-02 20:16:50,074 - INFO -   Bottleneck road type: TERMINAL_CONNECTOR
+2025-04-02 20:16:50,074 - INFO -   Found 0 congested road segments (>80% capacity)
+2025-04-02 20:16:50,074 - INFO - Phase 11 evacuation time: 7.71 hours (462.7 minutes)
+2025-04-02 20:16:50,074 - INFO -   Note: Time accounts for full population of 59,925 people
+2025-04-02 20:16:50,074 - INFO - Phase 11 calculation took 1.21 seconds
+2025-04-02 20:16:50,074 - INFO - 
+Processing Phase 12 with 4 source nodes
+2025-04-02 20:16:50,260 - INFO -   Phase 12 source: 33592 with population 11,275 (using 2,818 for calculation)
+2025-04-02 20:16:50,260 - INFO -   Phase 12 source: 33548 with population 7,639 (using 1,909 for calculation)
+2025-04-02 20:16:50,260 - INFO -   Phase 12 source: 33620 with population 6,451 (using 1,612 for calculation)
+2025-04-02 20:16:50,260 - INFO -   Phase 12 source: 33621 with population 2,309 (using 577 for calculation)
+2025-04-02 20:16:50,260 - INFO -   Connecting sink s0 to super sink with capacity 69,160
+2025-04-02 20:16:50,260 - INFO -   Connecting sink s1 to super sink with capacity 69,160
+2025-04-02 20:16:50,260 - INFO -   Connecting sink s2 to super sink with capacity 69,160
+2025-04-02 20:16:50,260 - INFO -   Connecting sink s3 to super sink with capacity 69,160
+2025-04-02 20:16:50,260 - INFO -   Connecting sink s4 to super sink with capacity 69,160
+2025-04-02 20:16:50,260 - INFO -   Connecting sink s5 to super sink with capacity 69,160
+2025-04-02 20:16:50,260 - INFO -   Connecting sink s6 to super sink with capacity 69,160
+2025-04-02 20:16:50,260 - INFO -   Connecting sink s7 to super sink with capacity 69,160
+2025-04-02 20:16:50,260 - INFO -   Connecting sink s8 to super sink with capacity 69,160
+2025-04-02 20:16:50,260 - INFO -   Connecting sink s9 to super sink with capacity 69,160
+2025-04-02 20:16:50,260 - INFO -   Connecting sink s10 to super sink with capacity 69,160
+2025-04-02 20:16:50,260 - INFO -   Connecting sink s11 to super sink with capacity 69,160
+2025-04-02 20:16:50,260 - INFO - Phase 12 original population: 27,674
+2025-04-02 20:16:50,260 - INFO - Phase 12 scaled population for calculation: 6,916
+2025-04-02 20:16:50,434 - INFO -   Starting OR-Tools MinCostFlow computation...
+2025-04-02 20:16:50,855 - INFO -   OR-Tools computation completed in 0.42 seconds
+2025-04-02 20:16:50,856 - INFO -   Optimal solution found!
+2025-04-02 20:16:50,931 - INFO -   Used 230 flow paths
+2025-04-02 20:16:50,931 - INFO -   Bottleneck: r103_3 → r103_2 with flow 2,818 people/hour
+2025-04-02 20:16:50,931 - INFO -   Bottleneck road type: P
+2025-04-02 20:16:50,931 - INFO -   Found 0 congested road segments (>80% capacity)
+2025-04-02 20:16:50,931 - INFO - Phase 12 evacuation time: 9.82 hours (589.0 minutes)
+2025-04-02 20:16:50,931 - INFO -   Note: Time accounts for full population of 27,674 people
+2025-04-02 20:16:50,931 - INFO - Phase 12 calculation took 0.86 seconds
+2025-04-02 20:16:50,932 - INFO - 
+Time-phased evacuation analysis completed in 15.92 seconds
+2025-04-02 20:16:50,932 - INFO - Total estimated evacuation time: 120.40 hours (7224.2 minutes)
+2025-04-02 20:16:50,932 - INFO - Results saved to /Users/jackcoon/Documents/OEM/TampaCode/OSMTampaMapping/data/results/phased_evacuation_summary.txt
+2025-04-02 20:16:50,933 - INFO - Generating visualizations...
+2025-04-02 20:16:50,933 - INFO - Generating evacuation path visualizations...
+2025-04-02 20:17:02,615 - INFO - Generated visualizations for 10 ZIP codes
+2025-04-02 20:17:12,451 - INFO - Generated visualizations for 20 ZIP codes
+2025-04-02 20:17:22,206 - INFO - Generated visualizations for 30 ZIP codes
+2025-04-02 20:17:31,981 - INFO - Generated visualizations for 40 ZIP codes
+2025-04-02 20:17:41,814 - INFO - Generated visualizations for 50 ZIP codes
+2025-04-02 20:17:41,814 - INFO - Saved individual path visualizations to /Users/jackcoon/Documents/OEM/TampaCode/OSMTampaMapping/data/results/path_visualizations
+2025-04-02 20:17:43,449 - INFO - Generated summary visualization: /Users/jackcoon/Documents/OEM/TampaCode/OSMTampaMapping/data/results/path_visualizations/all_primary_paths.png
+2025-04-02 20:17:43,452 - INFO - Generating min cost flow visualizations...
+2025-04-02 20:17:47,963 - INFO - Generated flow visualizations in /Users/jackcoon/Documents/OEM/TampaCode/OSMTampaMapping/data/results/flow_visualizations
+2025-04-02 20:17:47,966 - INFO - 
+Completed in 98.20 seconds
+2025-04-02 20:17:47,966 - INFO - Visualizations saved to:
+- /Users/jackcoon/Documents/OEM/TampaCode/OSMTampaMapping/data/results/path_visualizations
+- /Users/jackcoon/Documents/OEM/TampaCode/OSMTampaMapping/data/results/flow_visualizations

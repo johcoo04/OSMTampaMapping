@@ -17,7 +17,7 @@ def setup_logging(log_file_path):
     """Set up logging to write to both console and file"""
     # Create the directory for the log file if it doesn't exist
     log_dir = os.path.dirname(log_file_path)
-    if log_dir and not os.path.exists(log_dir):
+    if (log_dir and not os.path.exists(log_dir)):
         os.makedirs(log_dir, exist_ok=True)
     
     # Configure logging with two different formatters
@@ -948,6 +948,372 @@ def analyze_phased_evacuation_flow_only(G, output_dir, phases=12):
         'phase_results': phase_results
     }
 
+def visualize_shortest_paths(G, centroids_gdf, results, output_dir):
+    """
+    Visualize the shortest evacuation paths for each ZIP code.
+    
+    Args:
+        G: NetworkX graph
+        centroids_gdf: GeoDataFrame with centroid information
+        results: Results from process_all_centroids function
+        output_dir: Directory to save visualizations
+    """
+    log_print("Generating evacuation path visualizations...")
+    
+    # Create output directory for visualizations
+    vis_dir = os.path.join(output_dir, "path_visualizations")
+    os.makedirs(vis_dir, exist_ok=True)
+    
+    # Create a basemap of all nodes and edges
+    plt.figure(figsize=(15, 15))
+    
+    # Draw base graph structure - just the routes
+    route_nodes = []
+    route_edges = []
+    for u, v, data in G.edges(data=True):
+        if G.nodes[u].get('node_type') == 'route' and G.nodes[v].get('node_type') == 'route':
+            route_edges.append((u, v))
+    
+    # Create a position dictionary for all nodes
+    pos = nx.get_node_attributes(G, 'pos')
+    
+    # Draw the base map (gray)
+    nx.draw_networkx_edges(G, pos, edgelist=route_edges, edge_color='lightgray', 
+                         width=0.5, alpha=0.5)
+    
+    # Dictionary mapping for sink node colors
+    sink_colors = {}
+    color_options = ['red', 'blue', 'green', 'purple', 'orange', 'cyan', 
+                    'magenta', 'brown', 'pink', 'olive', 'darkblue', 'teal']
+    
+    # Assign colors to sink nodes
+    sink_nodes = [node for node, data in G.nodes(data=True) if data.get('node_type') == 'sink']
+    for i, sink in enumerate(sink_nodes):
+        sink_colors[sink] = color_options[i % len(color_options)]
+    
+    # Process each centroid result
+    for idx, result in enumerate(results):
+        zip_code = result['centroid']
+        paths = result['paths']
+        
+        if not paths:
+            continue
+        
+        # Create a new figure for each centroid
+        plt.figure(figsize=(12, 10))
+        
+        # Draw base routes in light gray
+        nx.draw_networkx_edges(G, pos, edgelist=route_edges, edge_color='lightgray', 
+                             width=0.5, alpha=0.3)
+        
+        # Find centroid node
+        centroid_node = None
+        for node, data in G.nodes(data=True):
+            if data.get('node_type') == 'centroid' and data.get('zip_code') == zip_code:
+                centroid_node = node
+                break
+        
+        if not centroid_node:
+            continue
+        
+        # Draw centroid node
+        nx.draw_networkx_nodes(G, pos, nodelist=[centroid_node], 
+                             node_color='blue', node_size=150, alpha=1.0)
+        
+        # Draw paths to different sinks with different colors
+        for i, path_data in enumerate(paths[:3]):  # Show up to 3 paths
+            path = path_data['path']
+            sink_node = path_data['sink_node']
+            sink_zip = path_data['sink']
+            
+            # Get path edges
+            path_edges = list(zip(path[:-1], path[1:]))
+            
+            # Choose color based on sink
+            color = sink_colors.get(sink_node, color_options[i % len(color_options)])
+            
+            # Draw path
+            nx.draw_networkx_edges(G, pos, edgelist=path_edges, 
+                                 edge_color=color, width=2.5, alpha=0.7)
+            
+            # Draw the destination sink node
+            nx.draw_networkx_nodes(G, pos, nodelist=[sink_node], 
+                                 node_color=color, node_size=150, alpha=1.0)
+        
+        # Add legends and labels
+        plt.title(f"Evacuation Paths for ZIP Code {zip_code}")
+        
+        # Create custom legend
+        legend_elements = []
+        for i, path_data in enumerate(paths[:3]):
+            sink_node = path_data['sink_node']
+            sink_zip = path_data['sink']
+            color = sink_colors.get(sink_node, color_options[i % len(color_options)])
+            legend_elements.append(plt.Line2D([0], [0], color=color, lw=2, 
+                                            label=f"Path to {sink_zip} ({path_data['distance_km']:.1f} km)"))
+        
+        legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
+                                        markerfacecolor='blue', markersize=10, 
+                                        label=f"Source: ZIP {zip_code}"))
+        
+        plt.legend(handles=legend_elements, loc='lower right')
+        plt.axis('off')
+        
+        # Save figure
+        output_path = os.path.join(vis_dir, f"evacuation_paths_{zip_code}.png")
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        
+        # Every 10 zip codes, create a combined visualization
+        if idx % 10 == 0 and idx > 0:
+            log_print(f"Generated visualizations for {idx} ZIP codes")
+    
+    log_print(f"Saved individual path visualizations to {vis_dir}")
+    
+    # Create a summary visualization with all centroids and their primary paths
+    plt.figure(figsize=(20, 20))
+    nx.draw_networkx_edges(G, pos, edgelist=route_edges, edge_color='lightgray', 
+                         width=0.5, alpha=0.2)
+    
+    # Draw all primary paths
+    for result in results:
+        if not result['paths']:
+            continue
+        
+        zip_code = result['centroid']
+        path_data = result['paths'][0]  # Only use primary path
+        path = path_data['path']
+        
+        # Get centroid node
+        centroid_node = None
+        for node, data in G.nodes(data=True):
+            if data.get('node_type') == 'centroid' and data.get('zip_code') == zip_code:
+                centroid_node = node
+                break
+        
+        if not centroid_node:
+            continue
+            
+        # Get path edges
+        path_edges = list(zip(path[:-1], path[1:]))
+        
+        # Draw centroid and path with random color
+        color = color_options[hash(zip_code) % len(color_options)]
+        nx.draw_networkx_edges(G, pos, edgelist=path_edges, 
+                             edge_color=color, width=1.5, alpha=0.5)
+    
+    plt.title("All Primary Evacuation Paths")
+    plt.axis('off')
+    summary_path = os.path.join(vis_dir, "all_primary_paths.png")
+    plt.savefig(summary_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    log_print(f"Generated summary visualization: {summary_path}")
+    return vis_dir
+
+def visualize_min_cost_flow(G, flow_results, output_dir, phases=12):
+    """
+    Visualize the min cost flow pattern for each evacuation phase.
+    
+    Args:
+        G: NetworkX graph
+        flow_results: Results from analyze_phased_evacuation_flow_only function
+        output_dir: Directory to save visualizations
+        phases: Number of evacuation phases
+    """
+    log_print("Generating min cost flow visualizations...")
+    
+    # Create output directory for visualizations
+    vis_dir = os.path.join(output_dir, "flow_visualizations")
+    os.makedirs(vis_dir, exist_ok=True)
+    
+    # Create a position dictionary for all nodes
+    pos = nx.get_node_attributes(G, 'pos')
+    
+    # Define base route edges for reference
+    route_edges = []
+    for u, v, data in G.edges(data=True):
+        if G.nodes[u].get('node_type') == 'route' and G.nodes[v].get('node_type') == 'route':
+            route_edges.append((u, v))
+    
+    # Process each phase from the results
+    phase_results = flow_results.get('phase_results', [])
+    
+    for phase_idx, phase_data in enumerate(phase_results):
+        phase_num = phase_idx + 1
+        
+        # Skip phases without flow data
+        if 'congested_edges' not in phase_data or not phase_data['congested_edges']:
+            continue
+        
+        # Create visualization for this phase
+        plt.figure(figsize=(15, 15))
+        
+        # Draw base graph structure
+        nx.draw_networkx_edges(G, pos, edgelist=route_edges, edge_color='lightgray', 
+                             width=0.5, alpha=0.3)
+        
+        # Get congested edges and their flow values
+        congested_edges = phase_data['congested_edges']
+        
+        # Prepare edge lists by congestion level
+        critical_edges = []  # >95%
+        high_edges = []      # 90-95%
+        medium_edges = []    # 85-90%
+        moderate_edges = []  # 80-85%
+        
+        # Normalize flows for edge width
+        max_flow = max([flow for _, _, flow, _, _, _ in congested_edges]) if congested_edges else 1
+        min_flow = min([flow for _, _, flow, _, _, _ in congested_edges]) if congested_edges else 0
+        flow_range = max_flow - min_flow
+        
+        # Group edges by congestion level
+        for u, v, flow, capacity, ratio, road_type in congested_edges:
+            # Only include edges where both nodes exist and have position data
+            if u in pos and v in pos:
+                # Normalize flow for edge width (1 to 8)
+                norm_flow = 1 + 7 * ((flow - min_flow) / flow_range) if flow_range > 0 else 4
+                
+                edge_data = (u, v, norm_flow)
+                
+                if ratio > 0.95:
+                    critical_edges.append(edge_data)
+                elif ratio > 0.90:
+                    high_edges.append(edge_data)
+                elif ratio > 0.85:
+                    medium_edges.append(edge_data)
+                else:
+                    moderate_edges.append(edge_data)
+        
+        # Draw edges by congestion level
+        if moderate_edges:
+            edges = [(u, v) for u, v, _ in moderate_edges]
+            widths = [w for _, _, w in moderate_edges]
+            nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color='yellow', 
+                                 width=widths, alpha=0.7)
+        
+        if medium_edges:
+            edges = [(u, v) for u, v, _ in medium_edges]
+            widths = [w for _, _, w in medium_edges]
+            nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color='orange', 
+                                 width=widths, alpha=0.7)
+        
+        if high_edges:
+            edges = [(u, v) for u, v, _ in high_edges]
+            widths = [w for _, _, w in high_edges]
+            nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color='red', 
+                                 width=widths, alpha=0.7)
+        
+        if critical_edges:
+            edges = [(u, v) for u, v, _ in critical_edges]
+            widths = [w for _, _, w in critical_edges]
+            nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color='darkred', 
+                                 width=widths, alpha=0.9)
+        
+        # Highlight bottleneck edge if available
+        if phase_data.get('bottleneck_edge'):
+            u, v = phase_data['bottleneck_edge']
+            if u in pos and v in pos:  # Ensure nodes are in the graph
+                bottleneck_edges = [(u, v)]
+                nx.draw_networkx_edges(G, pos, edgelist=bottleneck_edges, 
+                                     edge_color='black', width=4, alpha=1.0)
+                
+                # Add a label for the bottleneck
+                mid_point = ((pos[u][0] + pos[v][0])/2, (pos[u][1] + pos[v][1])/2)
+                plt.text(mid_point[0], mid_point[1], "BOTTLENECK", 
+                       fontsize=12, ha='center', va='center',
+                       bbox=dict(facecolor='white', alpha=0.7))
+        
+        # Add centroids for this phase to the visualization
+        centroid_nodes = [node for node, data in G.nodes(data=True) 
+                        if data.get('node_type') == 'centroid' and 
+                        data.get('demand', 0) < 0]
+        
+        nx.draw_networkx_nodes(G, pos, nodelist=centroid_nodes, 
+                             node_color='blue', node_size=100, alpha=0.7)
+        
+        # Add sink nodes
+        sink_nodes = [node for node, data in G.nodes(data=True) 
+                    if data.get('node_type') == 'sink']
+        
+        nx.draw_networkx_nodes(G, pos, nodelist=sink_nodes, 
+                             node_color='green', node_size=100, alpha=0.7)
+        
+        # Add legend and title
+        plt.title(f"Phase {phase_num} Flow Pattern - Population: {phase_data['population']:,}")
+        
+        # Create custom legend
+        legend_elements = [
+            plt.Line2D([0], [0], color='darkred', lw=4, label='Critical (>95% capacity)'),
+            plt.Line2D([0], [0], color='red', lw=3, label='High (90-95% capacity)'),
+            plt.Line2D([0], [0], color='orange', lw=2, label='Medium (85-90% capacity)'),
+            plt.Line2D([0], [0], color='yellow', lw=2, label='Moderate (80-85% capacity)'),
+            plt.Line2D([0], [0], color='black', lw=4, label='Bottleneck'),
+            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', 
+                      markersize=10, label='Source Centroids'),
+            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='green', 
+                      markersize=10, label='Sink Nodes')
+        ]
+        
+        plt.legend(handles=legend_elements, loc='lower right')
+        
+        # Add evacuation metrics
+        if 'max_flow_rate' in phase_data:
+            plt.text(0.02, 0.02, 
+                   f"Flow Rate: {phase_data['max_flow_rate']:,} people/hour\n"
+                   f"Evacuation Time: {phase_data['evacuation_time']:.2f} hours",
+                   transform=plt.gca().transAxes,
+                   fontsize=12, ha='left', va='bottom',
+                   bbox=dict(facecolor='white', alpha=0.7))
+        
+        plt.axis('off')
+        
+        # Save the visualization
+        output_path = os.path.join(vis_dir, f"flow_phase_{phase_num}.png")
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.close()
+    
+    # Create a combined visualization for all phases
+    plt.figure(figsize=(20, 20))
+    
+    # Draw base network
+    nx.draw_networkx_edges(G, pos, edgelist=route_edges, edge_color='lightgray', 
+                         width=0.5, alpha=0.3)
+    
+    # Draw all bottlenecks from all phases
+    bottleneck_edges = []
+    for phase_data in phase_results:
+        if phase_data.get('bottleneck_edge'):
+            u, v = phase_data['bottleneck_edge']
+            if u in pos and v in pos:  # Ensure nodes are in the graph
+                bottleneck_edges.append((u, v))
+    
+    # Draw all bottlenecks in black
+    nx.draw_networkx_edges(G, pos, edgelist=bottleneck_edges, 
+                         edge_color='black', width=3, alpha=0.8)
+    
+    # Draw centroids and sinks
+    centroid_nodes = [node for node, data in G.nodes(data=True) 
+                    if data.get('node_type') == 'centroid']
+    sink_nodes = [node for node, data in G.nodes(data=True) 
+                if data.get('node_type') == 'sink']
+    
+    nx.draw_networkx_nodes(G, pos, nodelist=centroid_nodes, 
+                         node_color='blue', node_size=80, alpha=0.7)
+    nx.draw_networkx_nodes(G, pos, nodelist=sink_nodes, 
+                         node_color='green', node_size=80, alpha=0.7)
+    
+    plt.title("All Evacuation Bottlenecks")
+    plt.axis('off')
+    
+    # Save combined visualization
+    combined_path = os.path.join(vis_dir, "all_bottlenecks.png")
+    plt.savefig(combined_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    log_print(f"Generated flow visualizations in {vis_dir}")
+    return vis_dir
+
 def main():
     # Start timing for overall execution
     total_start_time = time.time()
@@ -1003,6 +1369,17 @@ def main():
     # Run the full evacuation analysis
     flow_results = analyze_phased_evacuation_flow_only(G, results_dir, phases=12)
     
+    # Generate visualizations
+    visualization_start = time.time()
+    log_print("Generating visualizations...")
+    
+    # Visualize shortest paths
+    paths_vis_dir = visualize_shortest_paths(G, centroids_gdf, results, results_dir)
+    
+    # Visualize min cost flow
+    flow_vis_dir = visualize_min_cost_flow(G, flow_results, results_dir)
+    
+    visualization_time = time.time() - visualization_start
     pathfinding_time = time.time() - pathfinding_start
     total_time = time.time() - total_start_time
     
@@ -1014,8 +1391,15 @@ def main():
         f.write("=================\n")
         f.write(f"Graph Preparation Time: {graph_prep_time:.2f} seconds ({graph_prep_time/60:.2f} minutes)\n")
         f.write(f"Pathfinding Time: {pathfinding_time:.2f} seconds ({pathfinding_time/60:.2f} minutes)\n")
+        f.write(f"Visualization Time: {visualization_time:.2f} seconds ({visualization_time/60:.2f} minutes)\n")
         f.write(f"Total Run Time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)\n")
         f.write(f"Average Time Per Centroid: {pathfinding_time/len(centroids_gdf):.2f} seconds\n")
+        f.write(f"\nVisualization Directories:\n")
+        f.write(f"- Path Visualizations: {paths_vis_dir}\n")
+        f.write(f"- Flow Visualizations: {flow_vis_dir}\n")
+    
+    log_print(f"\nCompleted in {total_time:.2f} seconds")
+    log_print(f"Visualizations saved to:\n- {paths_vis_dir}\n- {flow_vis_dir}")
 
 if __name__ == "__main__":
     main()
