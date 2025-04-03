@@ -11,16 +11,6 @@
                 "ms-python.python"
             ],
             "settings": {
-<<<<<<< HEAD
-                "python.pythonPath": "/usr/local/bin/python" // Ensure the Python interpreter in the container is used
-            }
-        }
-    },
-    "forwardPorts": [8000],  // Example if you expose a port
-    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
-    "workspaceFolder": "/workspace"
-}
-=======
                 "python.defaultInterpreterPath": "/usr/local/bin/python" // Ensure the Python interpreter in the container is used
             }
         }
@@ -28,10 +18,8 @@
     "forwardPorts": [8000],
     "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
     "workspaceFolder": "/workspace",
-    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
     "features": {},
     "postCreateCommand": "pip install -r requirements.txt", // Example to install Python dependencies
     "remoteUser": "vscode"
 }
 
->>>>>>> dataTesting

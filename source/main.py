@@ -6,15 +6,50 @@ import json
 import time
 import matplotlib.pyplot as plt
 import numpy as np
-from rtree import index  # You might need to pip install rtree
+from rtree import index
+import pickle
+import logging
+import sys
+from ortools.graph.python import min_cost_flow
+
+# Setup logging configuration
+def setup_logging(log_file_path):
+    """Set up logging to write to both console and file"""
+    # Create the directory for the log file if it doesn't exist
+    log_dir = os.path.dirname(log_file_path)
+    if (log_dir and not os.path.exists(log_dir)):
+        os.makedirs(log_dir, exist_ok=True)
+    
+    # Configure logging with simpler formatters - no timestamps or level info
+    file_formatter = logging.Formatter('%(message)s')
+    console_formatter = logging.Formatter('%(message)s')
+    
+    # Create handlers
+    file_handler = logging.FileHandler(log_file_path)
+    file_handler.setFormatter(file_formatter)
+    
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(console_formatter)
+    
+    # Configure the root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+    
+    logging.info(f"Logging started. Output will be saved to {log_file_path}")
+
+# Replace all print statements with this function
+def log_print(message):
+    """Log a message to both console and file"""
+    logging.info(message)
 
 def load_data(routes_path, centroids_path, sink_nodes_path):
-    """Load evacuation routes, zip code centroids, and sink nodes."""
-    print("Loading data...")
+    log_print("Loading data...")
     
     # Load evacuation routes
     routes_gdf = gpd.read_file(routes_path).to_crs(epsg=3857)
-    print(f"Loaded {len(routes_gdf)} evacuation routes")
+    log_print(f"Loaded {len(routes_gdf)} evacuation routes")
     
     # Load zip code centroids
     with open(centroids_path, 'r') as f:
@@ -24,7 +59,7 @@ def load_data(routes_path, centroids_path, sink_nodes_path):
         for zip_code, coords in centroids_data.items()
     ]
     centroids_gdf = gpd.GeoDataFrame(centroids, crs="EPSG:3857")
-    print(f"Loaded {len(centroids_gdf)} zip code centroids")
+    log_print(f"Loaded {len(centroids_gdf)} zip code centroids")
     
     # Load sink nodes
     with open(sink_nodes_path, 'r') as f:
@@ -34,20 +69,20 @@ def load_data(routes_path, centroids_path, sink_nodes_path):
         for zip_code, coords in sink_data.items()
     ]
     sinks_gdf = gpd.GeoDataFrame(sinks, crs="EPSG:3857")
-    print(f"Loaded {len(sinks_gdf)} sink nodes")
+    log_print(f"Loaded {len(sinks_gdf)} sink nodes")
     
     return routes_gdf, centroids_gdf, sinks_gdf
 
 def create_connected_graph(routes_gdf, centroids_gdf, sinks_gdf, connection_threshold=100):
     """Create a connected graph with centroids, routes, and sinks."""
-    print("Creating connected graph...")
+    log_print("Creating connected graph...")
     start_time = time.time()
     
     # Initialize graph
     G = nx.Graph()
     
     # First pass: Add all route points and connect consecutive points in each route
-    print("Adding route segments to graph...")
+    log_print("Adding route segments to graph...")
     for idx, route in routes_gdf.iterrows():
         coords = list(route.geometry.coords)
         # Get the road type from properties
@@ -64,10 +99,10 @@ def create_connected_graph(routes_gdf, centroids_gdf, sinks_gdf, connection_thre
             G.add_node(end_node, pos=end, node_type="route", road_type=road_type)
             G.add_edge(start_node, end_node, weight=Point(start).distance(Point(end)), road_type=road_type)
     
-    print(f"Added {len(routes_gdf)} routes with {len(G.nodes())} nodes and {len(G.edges())} edges")
+    log_print(f"Added {len(routes_gdf)} routes with {len(G.nodes())} nodes and {len(G.edges())} edges")
     
     # Second pass: Build spatial index for all route nodes
-    print("Building spatial index for route nodes...")
+    log_print("Building spatial index for route nodes...")
     route_nodes = [(node, data["pos"]) for node, data in G.nodes(data=True) if data["node_type"] == "route"]
     
     # Create spatial index
@@ -77,7 +112,7 @@ def create_connected_graph(routes_gdf, centroids_gdf, sinks_gdf, connection_thre
         spatial_idx.insert(i, (pos[0], pos[1], pos[0], pos[1]))
     
     # Third pass: Connect nearby route nodes
-    print("Connecting nearby route nodes...")
+    log_print("Connecting nearby route nodes...")
     connections_made = 0
     
     for i, (node1, pos1) in enumerate(route_nodes):
@@ -98,23 +133,23 @@ def create_connected_graph(routes_gdf, centroids_gdf, sinks_gdf, connection_thre
                     G.add_edge(node1, node2, weight=dist, road_type="CONNECTOR")
                     connections_made += 1
     
-    print(f"Made {connections_made} new connections between nearby route nodes")
+    log_print(f"Made {connections_made} new connections between nearby route nodes")
     
     # Fourth pass: Check connectivity of route network
-    print("Checking route network connectivity...")
+    log_print("Checking route network connectivity...")
     route_subgraph = G.subgraph([n for n, d in G.nodes(data=True) if d["node_type"] == "route"])
     
     if nx.is_connected(route_subgraph):
-        print("Route network is fully connected!")
+        log_print("Route network is fully connected!")
     else:
         components = list(nx.connected_components(route_subgraph))
-        print(f"Warning: Route network has {len(components)} disconnected components")
+        log_print(f"Warning: Route network has {len(components)} disconnected components")
         largest = max(components, key=len)
-        print(f"Largest component has {len(largest)} nodes ({len(largest)/len(route_subgraph.nodes())*100:.1f}% of route nodes)")
+        log_print(f"Largest component has {len(largest)} nodes ({len(largest)/len(route_subgraph.nodes())*100:.1f}% of route nodes)")
         
         # If connectivity is very poor, we could try increasing the threshold and reconnecting
         if len(largest)/len(route_subgraph.nodes()) < 0.9 and connection_threshold < 500:
-            print(f"Poor connectivity detected. Attempting to connect major components with increased threshold...")
+            log_print(f"Poor connectivity detected. Attempting to connect major components with increased threshold...")
             # Find the two largest components
             components_sorted = sorted(components, key=len, reverse=True)
             if len(components_sorted) >= 2:
@@ -135,11 +170,11 @@ def create_connected_graph(routes_gdf, centroids_gdf, sinks_gdf, connection_thre
                     
                     if closest_pair:
                         G.add_edge(closest_pair[0], closest_pair[1], weight=min_dist, road_type="CONNECTOR")
-                        print(f"Connected components by adding edge with distance {min_dist:.2f} meters")
+                        log_print(f"Connected components by adding edge with distance {min_dist:.2f} meters")
                         comp1.extend(comp2)  # Merge components
     
     # Fifth pass: Add centroids and connect to multiple nearest route nodes
-    print("Adding and connecting centroids...")
+    log_print("Adding and connecting centroids...")
     for cent_idx, centroid in centroids_gdf.iterrows():
         centroid_id = f"c{cent_idx}"
         centroid_point = centroid.geometry
@@ -170,12 +205,12 @@ def create_connected_graph(routes_gdf, centroids_gdf, sinks_gdf, connection_thre
         if connection_count > 0:
             for dist, node in distances[:connection_count]:
                 G.add_edge(centroid_id, node, weight=dist, road_type="CENTROID_CONNECTOR")
-            print(f"Connected centroid {centroid['ZIP_CODE']} to {connection_count} route nodes")
+            log_print(f"Connected centroid {centroid['ZIP_CODE']} to {connection_count} route nodes")
         else:
-            print(f"Warning: Could not find nearby route nodes for centroid {centroid['ZIP_CODE']}")
+            log_print(f"Warning: Could not find nearby route nodes for centroid {centroid['ZIP_CODE']}")
     
     # Sixth pass: Add sink nodes and connect to multiple nearest route nodes
-    print("Adding and connecting sink nodes...")
+    log_print("Adding and connecting sink nodes...")
     for sink_idx, sink in sinks_gdf.iterrows():
         sink_id = f"s{sink_idx}"
         sink_point = sink.geometry
@@ -206,28 +241,28 @@ def create_connected_graph(routes_gdf, centroids_gdf, sinks_gdf, connection_thre
         if connection_count > 0:
             for dist, node in distances[:connection_count]:
                 G.add_edge(sink_id, node, weight=dist, road_type="SINK_CONNECTOR")
-            print(f"Connected sink {sink['ZIP_CODE']} to {connection_count} route nodes")
+            log_print(f"Connected sink {sink['ZIP_CODE']} to {connection_count} route nodes")
         else:
-            print(f"Warning: Could not find nearby route nodes for sink {sink['ZIP_CODE']}")
+            log_print(f"Warning: Could not find nearby route nodes for sink {sink['ZIP_CODE']}")
     
     # Final check: Is the entire graph connected?
-    print("Checking overall graph connectivity...")
+    log_print("Checking overall graph connectivity...")
     if nx.is_connected(G):
-        print("Success! Graph is fully connected.")
+        log_print("Success! Graph is fully connected.")
     else:
         components = list(nx.connected_components(G))
-        print(f"Warning: Graph has {len(components)} disconnected components")
+        log_print(f"Warning: Graph has {len(components)} disconnected components")
         largest = max(components, key=len)
-        print(f"Largest component has {len(largest)} nodes ({len(largest)/len(G.nodes())*100:.1f}% of all nodes)")
+        log_print(f"Largest component has {len(largest)} nodes ({len(largest)/len(G.nodes())*100:.1f}% of all nodes)")
         
         # Report how many centroid and sink nodes are in the main component
         centroids_in_main = sum(1 for node in largest if G.nodes[node].get("node_type") == "centroid")
         sinks_in_main = sum(1 for node in largest if G.nodes[node].get("node_type") == "sink")
-        print(f"Main component contains {centroids_in_main}/{len(centroids_gdf)} centroids and {sinks_in_main}/{len(sinks_gdf)} sinks")
+        log_print(f"Main component contains {centroids_in_main}/{len(centroids_gdf)} centroids and {sinks_in_main}/{len(sinks_gdf)} sinks")
         
         # Try to find and connect the remaining components
         if len(components) > 1:
-            print("Attempting to connect remaining components...")
+            log_print("Attempting to connect remaining components...")
             components_sorted = sorted(components, key=len, reverse=True)
             main_comp = components_sorted[0]
             
@@ -249,415 +284,897 @@ def create_connected_graph(routes_gdf, centroids_gdf, sinks_gdf, connection_thre
                 
                 if closest_pair:
                     G.add_edge(closest_pair[0], closest_pair[1], weight=min_dist, road_type="COMPONENT_CONNECTOR")
-                    print(f"Connected component {comp_idx} to main component with edge of distance {min_dist:.2f} meters")
+                    log_print(f"Connected component {comp_idx} to main component with edge of distance {min_dist:.2f} meters")
                     main_comp = main_comp.union(other_comp)  # Update main component
     
-    # Final connectivity check after attempted fixes
-    if not nx.is_connected(G):
-        print("Warning: Graph remains disconnected after attempted fixes")
-        
-        # Identify which centroids and sinks are disconnected
-        components = list(nx.connected_components(G))
-        main_comp = max(components, key=len)
-        
-        disconnected_centroids = [G.nodes[node]["zip_code"] for node in G.nodes() 
-                                if G.nodes[node].get("node_type") == "centroid" and node not in main_comp]
-        disconnected_sinks = [G.nodes[node]["zip_code"] for node in G.nodes() 
-                            if G.nodes[node].get("node_type") == "sink" and node not in main_comp]
-        
-        if disconnected_centroids:
-            print(f"Disconnected centroids: {', '.join(disconnected_centroids)}")
-        if disconnected_sinks:
-            print(f"Disconnected sinks: {', '.join(disconnected_sinks)}")
-    
     total_time = time.time() - start_time
-    print(f"Graph creation completed in {total_time:.2f} seconds")
+    log_print(f"Graph creation completed in {total_time:.2f} seconds")
     return G
 
-def visualize_path_with_road_types(G, path, output_path, centroid_zip=""):
-    """Visualize the shortest path with color-coded road types."""
-    print(f"Visualizing shortest path for {centroid_zip}...")
-    pos = nx.get_node_attributes(G, 'pos')
+def connect_sinks_to_terminals(G, terminal_nodes_path, sink_nodes_path):
     
-    # Define colors for different road types
-    road_type_colors = {
-        'P': 'blue',              # Primary roads
-        'M': 'green',             # Major roads
-        'H': 'red',               # Highways
-        'C': 'purple',            # Collector roads
-        'CONNECTOR': 'gray',      # Auto-generated connections
-        'CENTROID_CONNECTOR': 'lime', # Centroid connections (usually hidden)
-        'SINK_CONNECTOR': 'orange',   # Sink connections (usually hidden)
-        'COMPONENT_CONNECTOR': 'magenta', # Component connections
-        'UNKNOWN': 'black'        # Unknown road type
-    }
+    log_print("Connecting sink nodes to terminal nodes...")
     
-    # Plot the graph
-    plt.figure(figsize=(15, 15))
+    # Load terminal nodes from JSON
+    with open(terminal_nodes_path, 'r') as f:
+        terminal_data = json.load(f)
     
-    # Draw route edges by road type
-    for road_type, color in road_type_colors.items():
-        # Get edges of this road type
-        edges = [(u, v) for u, v, d in G.edges(data=True) 
-                if d.get('road_type') == road_type]
+    # Load sink nodes from JSON
+    with open(sink_nodes_path, 'r') as f:
+        sink_data = json.load(f)
+    
+    log_print(f"Loaded {len(terminal_data)} terminal nodes and {len(sink_data)} sink nodes from JSON")
+    
+    # First, ensure all terminal nodes are in the graph
+    terminal_node_ids = []
+    for terminal_id, coords in terminal_data.items():
+        node_id = f"t_{terminal_id}"
+        terminal_pos = (coords["x"], coords["y"])
         
-        # Skip if no edges of this type
-        if not edges:
-            continue
+        # Add terminal node if not already in graph
+        if node_id not in G:
+            G.add_node(node_id, pos=terminal_pos, node_type="terminal", road_type="TERMINAL")
+            log_print(f"Added terminal node {terminal_id} to graph")
+        else:
+            # Update position if node exists
+            G.nodes[node_id]["pos"] = terminal_pos
+            G.nodes[node_id]["node_type"] = "terminal"
+            G.nodes[node_id]["road_type"] = "TERMINAL"
         
-        # Adjust alpha based on type
-        alpha = 0.15 if road_type in ['CONNECTOR', 'CENTROID_CONNECTOR', 'SINK_CONNECTOR'] else 0.5
-        width = 0.7 if road_type in ['CONNECTOR', 'CENTROID_CONNECTOR', 'SINK_CONNECTOR'] else 1.5
+        terminal_node_ids.append(node_id)
+    
+    # Ensure terminals are connected to the route network
+    route_nodes = [node for node, data in G.nodes(data=True) if data.get("node_type") == "route"]
+    
+    # Build spatial index for route nodes
+    spatial_idx = index.Index()
+    for i, node in enumerate(route_nodes):
+        pos = G.nodes[node]["pos"]
+        # Index format: (id, (left, bottom, right, top))
+        spatial_idx.insert(i, (pos[0], pos[1], pos[0], pos[1]))
+    
+    # Connect each terminal to nearest route nodes
+    for terminal_id in terminal_node_ids:
+        terminal_pos = G.nodes[terminal_id]["pos"]
         
-        # Draw this road type with appropriate color
-        nx.draw_networkx_edges(G, pos, edgelist=edges, 
-                              edge_color=color, width=width, alpha=alpha)
-    
-    # Draw centroid nodes in bright green - FIX to avoid warning
-    centroid_nodes = [n for n, d in G.nodes(data=True) if d.get("node_type") == "centroid"]
-    if centroid_nodes:
-        nx.draw_networkx_nodes(G, pos, nodelist=centroid_nodes, node_size=80, 
-                             node_color="lime", alpha=1.0)
-    
-    # Draw sink nodes in bright red - FIX to avoid warning
-    sink_nodes = [n for n, d in G.nodes(data=True) if d.get("node_type") == "sink"]
-    if sink_nodes:
-        nx.draw_networkx_nodes(G, pos, nodelist=sink_nodes, node_size=80, 
-                             node_color="crimson", alpha=1.0)
-    
-    # Highlight the current centroid if provided
-    if centroid_zip:
-        current_centroid = [n for n, d in G.nodes(data=True) 
-                          if d.get("node_type") == "centroid" and d.get("zip_code") == centroid_zip]
-        if current_centroid:
-            nx.draw_networkx_nodes(G, pos, nodelist=current_centroid, node_size=150, 
-                                node_color="yellow", alpha=1.0, linewidths=2, edgecolors="black")
-    
-    # If path exists, highlight it
-    if path:
-        # For path nodes - FIX to avoid warning
-        if path:
-            nx.draw_networkx_nodes(G, pos, nodelist=path, node_size=30, 
-                                node_color="yellow", alpha=0.8)
+        # Skip if terminal already has route connections
+        has_route_connection = any(G.nodes[neighbor].get("node_type") == "route" 
+                                  for neighbor in G.neighbors(terminal_id))
         
-        # For path edges, color by road type
-        path_edges = list(zip(path, path[1:]))
-        for u, v in path_edges:
-            if G.has_edge(u, v):
-                road_type = G.edges[u, v].get('road_type', 'UNKNOWN')
-                color = road_type_colors.get(road_type, 'black')
-                # For artificial connections in the path, use yellow highlight
-                if road_type in ['CONNECTOR', 'CENTROID_CONNECTOR', 'SINK_CONNECTOR', 'COMPONENT_CONNECTOR']:
-                    color = 'yellow'
-                nx.draw_networkx_edges(G, pos, edgelist=[(u, v)], 
-                                      edge_color=color, width=3, alpha=1.0)
-    
-    # Add a legend
-    legend_items = []
-    
-    # Road types for legend
-    for road_type, color in road_type_colors.items():
-        # Only show in legend if there are edges of this type
-        if any(d.get('road_type') == road_type for _, _, d in G.edges(data=True)):
-            if road_type in ['CONNECTOR', 'CENTROID_CONNECTOR', 'SINK_CONNECTOR', 'COMPONENT_CONNECTOR']:
-                legend_items.append(plt.Line2D([], [], color=color, linewidth=1, alpha=0.3,
-                        label=f'{road_type} (Auto-generated)'))
+        if not has_route_connection:
+            # Find nearby route nodes
+            nearby = list(spatial_idx.intersection((
+                terminal_pos[0] - 1000,  # 1km search radius
+                terminal_pos[1] - 1000,
+                terminal_pos[0] + 1000,
+                terminal_pos[1] + 1000
+            )))
+            
+            if nearby:
+                # Connect to closest route node
+                closest_idx = nearby[0]
+                closest_node = route_nodes[closest_idx]
+                closest_pos = G.nodes[closest_node]["pos"]
+                dist = Point(terminal_pos).distance(Point(closest_pos))
+                
+                G.add_edge(terminal_id, closest_node, weight=dist, road_type="TERMINAL_CONNECTOR")
+                log_print(f"Connected terminal {terminal_id} to route node at distance {dist/1000:.2f} km")
             else:
-                legend_items.append(plt.Line2D([], [], color=color, linewidth=2, 
-                        label=f'{road_type} Roads'))
+                log_print(f"Warning: Could not find nearby route nodes for terminal {terminal_id}")
     
-    # Node types for legend
-    legend_items.append(plt.Line2D([], [], marker='o', color='w', markerfacecolor='lime', 
-                       markersize=8, label='Centroids', linestyle='None'))
-    legend_items.append(plt.Line2D([], [], marker='o', color='w', markerfacecolor='crimson', 
-                       markersize=8, label='Sinks', linestyle='None'))
+    # Find all sink nodes in the graph
+    sink_node_ids = []
+    for node, data in G.nodes(data=True):
+        if data.get("node_type") == "sink":
+            sink_node_ids.append(node)
     
-    if centroid_zip:
-        legend_items.append(plt.Line2D([], [], marker='o', color='w', markerfacecolor='yellow', 
-                           markersize=10, markeredgecolor='black', label=f'Centroid {centroid_zip}', 
-                           linestyle='None'))
-    
-    if path:
-        legend_items.append(plt.Line2D([], [], marker='o', color='w', markerfacecolor='yellow', 
-                           markersize=6, label='Path Nodes', linestyle='None'))
-        legend_items.append(plt.Line2D([], [], color='yellow', linewidth=3, label='Connection in Path'))
-    
-    plt.legend(handles=legend_items, loc='best')
-    
-    # Add title with path information if available
-    if path and centroid_zip:
-        sink_zip = ""
-        for node in path:
-            if G.nodes[node].get("node_type") == "sink":
-                sink_zip = G.nodes[node].get("zip_code", "")
-                break
+    # Remove all existing connections from sink nodes
+    for sink_id in sink_node_ids:
+        sink_zip = G.nodes[sink_id].get("zip_code", "unknown")
+        neighbors = list(G.neighbors(sink_id))
         
-        title = f"Evacuation Path: {centroid_zip} to {sink_zip}"
-        if sink_zip:
-            path_length = nx.shortest_path_length(G, path[0], path[-1], weight="weight")
-            title += f" ({path_length/1000:.2f} km)"
-    else:
-        title = "Evacuation Route Network by Road Type"
-    
-    plt.title(title)
-    plt.savefig(output_path, dpi=300)
-    print(f"Visualization saved to {output_path}")
-    plt.close()
-
-def visualize_components(G, output_path):
-    """Visualize the connected components of the graph."""
-    print("Visualizing connected components...")
-    pos = nx.get_node_attributes(G, 'pos')
-    
-    # Get connected components
-    components = list(nx.connected_components(G))
-    
-    # Plot the graph
-    plt.figure(figsize=(15, 15))
-    
-    # Use different colors for each component (up to 10 components)
-    colors = plt.cm.tab10.colors
-    
-    # Draw each component with a different color
-    for i, component in enumerate(sorted(components, key=len, reverse=True)):
-        color = colors[i % len(colors)]
-        subgraph = G.subgraph(component)
-        nx.draw_networkx_edges(subgraph, pos, alpha=0.6, edge_color=color)
+        for neighbor in neighbors:
+            G.remove_edge(sink_id, neighbor)
         
-        # FIX: Draw nodes with proper list to avoid warning
-        nodes = list(subgraph.nodes())
-        if nodes:  # Only draw if there are nodes
-            nx.draw_networkx_nodes(subgraph, pos, nodelist=nodes, node_size=10, 
-                                 node_color=[color] * len(nodes), alpha=0.8)
+        log_print(f"Removed {len(neighbors)} existing connections from sink {sink_zip}")
     
-    # Draw centroids and sinks with special markers - FIX to avoid warning
-    centroid_nodes = [n for n, d in G.nodes(data=True) if d.get("node_type") == "centroid"]
-    if centroid_nodes:
-        nx.draw_networkx_nodes(G, pos, nodelist=centroid_nodes, node_size=100, 
-                             node_color=["green"] * len(centroid_nodes), 
-                             node_shape='*', alpha=1.0)
+    # Connect each sink to its 3 closest terminals
+    total_connections = 0
+    for sink_id in sink_node_ids:
+        sink_zip = G.nodes[sink_id].get("zip_code", "unknown")
+        sink_pos = G.nodes[sink_id]["pos"]
+        
+        # Calculate distances to all terminals
+        terminal_distances = []
+        for terminal_id in terminal_node_ids:
+            terminal_pos = G.nodes[terminal_id]["pos"]
+            dist = Point(sink_pos).distance(Point(terminal_pos))
+            terminal_distances.append((terminal_id, dist))
+        
+        # Sort by distance and connect to closest 3 (or fewer if less than 3 terminals exist)
+        terminal_distances.sort(key=lambda x: x[1])
+        closest_count = min(3, len(terminal_distances))
+        
+        for i in range(closest_count):
+            terminal_id, dist = terminal_distances[i]
+            G.add_edge(sink_id, terminal_id, weight=dist, road_type="SINK_TERMINAL_CONNECTOR")
+            total_connections += 1
+        
+        log_print(f"Connected sink {sink_zip} to its {closest_count} closest terminal nodes")
     
-    sink_nodes = [n for n, d in G.nodes(data=True) if d.get("node_type") == "sink"]
-    if sink_nodes:
-        nx.draw_networkx_nodes(G, pos, nodelist=sink_nodes, node_size=100, 
-                             node_color=["red"] * len(sink_nodes), 
-                             node_shape='s', alpha=1.0)
-    
-    # Add a legend
-    legend_items = []
-    legend_items.append(plt.Line2D([], [], marker='*', color='w', markerfacecolor='green', 
-                       markersize=15, label='Centroids', linestyle='None'))
-    legend_items.append(plt.Line2D([], [], marker='s', color='w', markerfacecolor='red', 
-                       markersize=10, label='Sinks', linestyle='None'))
-    
-    # Add component legend items
-    for i in range(min(len(components), 5)):
-        comp_size = len(sorted(components, key=len, reverse=True)[i])
-        legend_items.append(plt.Line2D([], [], marker='o', color='w', 
-                           markerfacecolor=colors[i], markersize=8, 
-                           label=f'Component {i+1} ({comp_size} nodes)', 
-                           linestyle='None'))
-    
-    if len(components) > 5:
-        other_nodes = sum(len(c) for c in sorted(components, key=len, reverse=True)[5:])
-        legend_items.append(plt.Line2D([], [], marker='o', color='w', 
-                           markerfacecolor='gray', markersize=8, 
-                           label=f'Other components ({other_nodes} nodes)', 
-                           linestyle='None'))
-    
-    plt.legend(handles=legend_items, loc='best')
-    
-    # Save the visualization
-    plt.title(f"Graph Components ({len(components)} total)")
-    plt.savefig(output_path, dpi=300)
-    print(f"Component visualization saved to {output_path}")
-    plt.close()
+    log_print(f"Created {total_connections} connections between sinks and terminals")
+    return G
 
-def process_all_centroids(G, centroids_gdf, output_dir):
-    """Process all centroids, find the top 3 closest sinks for each."""
-    # Ensure output directory exists
+def save_graph_to_pickle(G, pickle_path):
+    """Save the graph to a pickle file."""
+    with open(pickle_path, 'wb') as f:
+        pickle.dump(G, f)
+    log_print(f"Saved graph to {pickle_path}")
+
+def load_graph_from_pickle(pickle_path):
+    """Load the graph from a pickle file."""
+    with open(pickle_path, 'rb') as f:
+        G = pickle.load(f)
+    log_print(f"Loaded graph from {pickle_path}")
+    return G
+
+def assign_road_capacities_and_population(G, population_data_path, sink_nodes_path):
+    log_print("Assigning road capacities and population data...")
+    
+    road_properties = {
+        'H': {'capacity': 24000, 'speed': 85},  # Highway
+        'P': {'capacity': 12000, 'speed': 75},  # Primary road
+        'M': {'capacity': 8000, 'speed': 65},   # Major road
+        'C': {'capacity': 6400, 'speed': 55},   # Collector road
+        'R': {'capacity': 4000, 'speed': 35},   # Ramp
+        'CONNECTOR': {'capacity': 16000, 'speed': 65},
+        'CENTROID_CONNECTOR': {'capacity': 20000, 'speed': 65},
+        'SINK_CONNECTOR': {'capacity': 24000, 'speed': 65},
+        'COMPONENT_CONNECTOR': {'capacity': 12000, 'speed': 65},
+        'SINK_TERMINAL_CONNECTOR': {'capacity': 24000, 'speed': 65},
+        'TERMINAL_CONNECTOR': {'capacity': 24000, 'speed': 65},
+        'UNKNOWN': {'capacity': 8000, 'speed': 30}
+    }
+
+    # Define default properties to use when a road type isn't found
+    default_properties = {'capacity': 1000}
+    
+    # Load population data - array format
+    with open(population_data_path, 'r') as f:
+        population_array = json.load(f)
+    
+    # Convert array to dictionary with zip codes as keys
+    population_data = {}
+    for item in population_array:
+        zip_code = item.get("zip")
+        if zip_code:
+            population_data[zip_code] = {"population": item.get("population", 0)}
+    
+    log_print(f"Loaded population data for {len(population_data)} zip codes")
+    
+    # Load sink node capacities
+    with open(sink_nodes_path, 'r') as f:
+        sink_data = json.load(f)
+    
+    log_print(f"Loaded capacity data for {len(sink_data)} sink nodes")
+    
+    # Assign capacity to all edges based on road type
+    edges_updated = 0
+    for u, v, data in G.edges(data=True):
+        road_type = data.get('road_type', 'UNKNOWN')
+        # Use first character if it's a single-character road type
+        road_key = road_type[0] if len(road_type) == 1 else road_type
+        
+        # Get properties with a safe fallback
+        props = road_properties.get(road_key, default_properties)
+        
+        # Assign capacity
+        G[u][v]['capacity'] = props['capacity']
+        
+        edges_updated += 1
+    
+    log_print(f"Updated {edges_updated} edges with capacity attributes")
+    
+    # Assign population as 'demand' to centroid nodes (negative for sources)
+    centroids_updated = 0
+    for node, data in G.nodes(data=True):
+        if data.get("node_type") == "centroid":
+            zip_code = data.get("zip_code")
+            if zip_code in population_data:
+                population = population_data[zip_code].get("population", 0)
+                # Set as negative for sources in min cost flow
+                G.nodes[node]['demand'] = -population
+                centroids_updated += 1
+            else:
+                log_print(f"Warning: No population data found for zip code {zip_code}")
+                G.nodes[node]['demand'] = 0
+    
+    log_print(f"Updated {centroids_updated} centroids with population demand")
+    
+    # Assign capacity values to sink nodes from the sink_nodes.json file
+    sinks_updated = 0
+    for node, data in G.nodes(data=True):
+        if data.get("node_type") == "sink":
+            zip_code = data.get("zip_code")
+            if zip_code in sink_data:
+                # Set the capacity from the sink_nodes.json file - increase by 2x
+                capacity = sink_data[zip_code].get("population", 1999999) * 2
+                G.nodes[node]['demand'] = capacity
+                G.nodes[node]['capacity'] = capacity
+                sinks_updated += 1
+            else:
+                log_print(f"Warning: No capacity data found for sink with zip code {zip_code}")
+                # Default fallback capacity
+                G.nodes[node]['demand'] = 3999998
+                G.nodes[node]['capacity'] = 3999998
+    
+    log_print(f"Updated {sinks_updated} sink nodes with capacity values from sink_nodes.json")
+    
+    return G
+
+def calculate_min_cost_flow(G, output_dir):
+    """Calculate optimal evacuation flows using a simplified bi-level approach."""
+    log_print("Calculating optimal evacuation paths using bi-level min-cost flow approach...")
+    start_time = time.time()
+    
+    # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
     
-    # Get sink nodes
-    sink_nodes = [node for node, data in G.nodes(data=True) if data.get("node_type") == "sink"]
+    # Step 1: Identify source/sink nodes and prepare data structures
+    source_nodes = []
+    sink_nodes = []
     
-    # Check if the graph is connected
-    if not nx.is_connected(G):
-        print("Warning: Graph is not fully connected. Some paths may not be found.")
-        # Get the components
-        components = list(nx.connected_components(G))
-        # Map each node to its component
-        node_to_component = {}
-        for i, component in enumerate(components):
-            for node in component:
-                node_to_component[node] = i
+    for node, data in G.nodes(data=True):
+        if data.get("node_type") == "centroid" and data.get("demand", 0) < 0:
+            population = -data.get("demand", 0)
+            zip_code = data.get("zip_code", "unknown")
+            source_nodes.append((node, population, zip_code))
+        elif data.get("node_type") == "sink":
+            sink_zip = data.get("zip_code", "unknown")
+            capacity = data.get("capacity", 2000000)
+            sink_nodes.append((node, sink_zip, capacity))
     
-    # Process each centroid
-    results = []
-    for _, centroid in centroids_gdf.iterrows():
-        zip_code = centroid["ZIP_CODE"]
-        print(f"Processing centroid {zip_code}...")
+    total_population = sum(pop for _, pop, _ in source_nodes)
+    total_sink_capacity = sum(cap for _, _, cap in sink_nodes)
+    
+    log_print(f"Planning optimal evacuation for {total_population:,} people from {len(source_nodes)} zip codes")
+    log_print(f"Total sink capacity: {total_sink_capacity:,} (should be >= population)")
+    
+    # LEVEL 1: Create a simplified bipartite graph directly connecting sources to sinks
+    log_print("Creating simplified evacuation network...")
+    F = nx.DiGraph()
+    
+    # Add source nodes with demands (negative = supply)
+    for node_id, pop, zip_code in source_nodes:
+        F.add_node(node_id, demand=-pop, population=pop, zip_code=zip_code, node_type="centroid")
+    
+    # Add sink nodes
+    for node_id, sink_zip, capacity in sink_nodes:
+        F.add_node(node_id, capacity=capacity, zip_code=sink_zip, node_type="sink")
+    
+    # Add a super sink
+    super_sink = "evacuation_super_sink"
+    F.add_node(super_sink, demand=total_population, node_type="super_sink")
+    
+    # Connect each sink to super sink
+    for sink_node, sink_zip, capacity in sink_nodes:
+        F.add_edge(sink_node, super_sink, capacity=capacity, weight=1)
+    
+    # Pre-calculate shortest paths between sources and sinks
+    log_print("Pre-calculating shortest paths between all sources and sinks...")
+    path_failures = 0
+    
+    # Connect sources directly to sinks using shortest paths through the full network
+    for i, (source_node, pop, source_zip) in enumerate(source_nodes):
+        if i % 10 == 0:
+            log_print(f"Processing source {i+1}/{len(source_nodes)}: {source_zip}")
         
-        # Find the centroid node
-        centroid_node = None
-        for node, data in G.nodes(data=True):
-            if data.get("node_type") == "centroid" and data.get("zip_code") == zip_code:
-                centroid_node = node
-                break
+        for sink_node, sink_zip, sink_capacity in sink_nodes:
+            try:
+                # Find shortest path in the full network
+                path = nx.shortest_path(G, source_node, sink_node, weight="weight")
+                
+                # Calculate path distance and aggregate capacity
+                distance = 0
+                min_capacity = float('inf')
+                road_types = set()
+                
+                for u, v in zip(path[:-1], path[1:]):
+                    segment_weight = G[u][v].get('weight', 1000)
+                    segment_capacity = G[u][v].get('capacity', 10000)
+                    road_type = G[u][v].get('road_type', 'UNKNOWN')
+                    
+                    distance += segment_weight
+                    min_capacity = min(min_capacity, segment_capacity)
+                    road_types.add(road_type)
+                
+                # Add a direct edge with appropriate costs and capacity
+                # Set capacity as minimum of source population, sink capacity, and route capacity
+                edge_capacity = min(pop, sink_capacity, min_capacity)
+                
+                # Convert distance to integer cost (OR-Tools requires integer costs)
+                # Normalize to reasonable range to avoid numerical issues
+                cost = max(1, min(999999, int(distance)))
+                
+                F.add_edge(source_node, sink_node, 
+                          capacity=edge_capacity,
+                          weight=cost, 
+                          distance=distance,
+                          road_types=list(road_types))
+                          
+            except nx.NetworkXNoPath:
+                path_failures += 1
+                # Add a high-cost edge to ensure problem is feasible
+                F.add_edge(source_node, sink_node, 
+                          capacity=pop,
+                          weight=999999,  # Very high cost = least desirable
+                          distance=999999,
+                          road_types=["NONE"])
+    
+    if path_failures > 0:
+        log_print(f"Warning: Could not find paths for {path_failures} source-sink pairs. Added high-cost alternatives.")
+    
+    # Step 3: Create the min-cost flow solver
+    log_print("Setting up min-cost flow solver...")
+    mcf = min_cost_flow.SimpleMinCostFlow()
+    
+    # Create node maps for OR-Tools
+    node_map = {}
+    reverse_map = {}
+    
+    for i, node in enumerate(F.nodes()):
+        node_map[node] = i
+        reverse_map[i] = node
+    
+    # Add nodes with supplies/demands
+    for node, data in F.nodes(data=True):
+        supply = -data.get('demand', 0)  # Note: negative demand = positive supply
+        if supply != 0:
+            mcf.set_node_supply(node_map[node], int(supply))
+    
+    # Add edges as arcs
+    edge_index = {}
+    i = 0
+    
+    for u, v, data in F.edges(data=True):
+        weight = int(data.get('weight', 1000))
+        capacity = int(data.get('capacity', 1000))
         
-        if not centroid_node:
-            print(f"Warning: Centroid {zip_code} not found in the graph!")
-            continue
+        mcf.add_arc_with_capacity_and_unit_cost(
+            node_map[u], node_map[v], capacity, weight)
+        edge_index[(u, v)] = i
+        i += 1
+    
+    # Check balance
+    total_supply = 0
+    total_demand = 0
+    for node in range(mcf.num_nodes()):
+        supply = mcf.supply(node)
+        if supply > 0:
+            total_supply += supply
+        elif supply < 0:
+            total_demand += -supply
+            
+    log_print(f"Solver balance check: Supply={total_supply}, Demand={total_demand}, Difference={total_supply-total_demand}")
+    
+    # Step 4: Solve the min-cost flow problem
+    log_print(f"Solving min-cost flow with {mcf.num_nodes()} nodes and {mcf.num_arcs()} arcs...")
+    status = mcf.solve()
+    
+    # Step 5: Process results
+    result_data = {
+        "centroid_flows": {},
+        "sink_flows": {},
+        "status": str(status),
+        "optimal": (status == mcf.OPTIMAL)
+    }
+    
+    # Initialize data structures for storing results
+    for _, _, zip_code in source_nodes:
+        result_data["centroid_flows"][zip_code] = {
+            "population": 0,
+            "sinks": {}
+        }
+    
+    for _, sink_zip, _ in sink_nodes:
+        result_data["sink_flows"][sink_zip] = {
+            "total_inflow": 0,
+            "centroids": {}
+        }
+    
+    # Process results based on solver status
+    if status == mcf.OPTIMAL:
+        log_print("Min-cost flow solver found optimal solution!")
         
-        # Find paths to all reachable sinks
-        all_paths = []
+        # Extract direct flows from centroids to sinks
+        flow_count = 0
+        for source_node, pop, source_zip in source_nodes:
+            result_data["centroid_flows"][source_zip]["population"] = pop
+            
+            # Get all outgoing flows from this source
+            source_total_flow = 0
+            for sink_node, sink_zip, _ in sink_nodes:
+                if (source_node, sink_node) in edge_index:
+                    idx = edge_index[(source_node, sink_node)]
+                    flow = mcf.flow(idx)
+                    
+                    if flow > 0:
+                        flow_count += 1
+                        source_total_flow += flow
+                        
+                        # Record flow in results
+                        if sink_zip not in result_data["centroid_flows"][source_zip]["sinks"]:
+                            result_data["centroid_flows"][source_zip]["sinks"][sink_zip] = 0
+                        result_data["centroid_flows"][source_zip]["sinks"][sink_zip] += flow
+                        
+                        # Also record in sink data
+                        result_data["sink_flows"][sink_zip]["total_inflow"] += flow
+                        if source_zip not in result_data["sink_flows"][sink_zip]["centroids"]:
+                            result_data["sink_flows"][sink_zip]["centroids"][source_zip] = 0
+                        result_data["sink_flows"][sink_zip]["centroids"][source_zip] += flow
+                        
+                        # Get the path details
+                        distance = F[source_node][sink_node].get('distance', 0)
+                        road_types = F[source_node][sink_node].get('road_types', [])
+                        
+                        log_print(f"  Flow: {source_zip} → {sink_zip}: {flow:,} people ({distance/1000:.1f} km)")
+            
+            # Verify total flow matches population
+            if abs(source_total_flow - pop) > 0.1:
+                log_print(f"  Warning: Source {source_zip} has flow discrepancy: {pop} population but {source_total_flow} total flow")
         
-        # If the graph is connected, search all sinks
-        if nx.is_connected(G):
-            for sink_node in sink_nodes:
+        # Verify sink flows
+        for _, sink_zip, capacity in sink_nodes:
+            sink_flow = result_data["sink_flows"][sink_zip]["total_inflow"]
+            if sink_flow > capacity + 0.1:  # Small tolerance for floating point errors
+                log_print(f"  Warning: Sink {sink_zip} received {sink_flow} flow, exceeding capacity {capacity}")
+        
+        log_print(f"Total flow assignments: {flow_count}")
+                    
+    else:
+        log_print(f"Min-cost flow solver status: {status} - Not optimal. Using distance-based allocation.")
+        
+        # Fallback to distance-based allocation
+        for node, pop, centroid_zip in source_nodes:
+            result_data["centroid_flows"][centroid_zip]["population"] = pop
+            
+            # Find paths to all sinks
+            paths_to_sinks = []
+            for sink_node, sink_zip, _ in sink_nodes:
                 try:
-                    path = nx.shortest_path(G, source=centroid_node, target=sink_node, weight="weight")
-                    distance = nx.shortest_path_length(G, source=centroid_node, target=sink_node, weight="weight")
-                    sink_zip = G.nodes[sink_node].get("zip_code")
+                    path = nx.shortest_path(G, node, sink_node, weight="weight")
+                    distance = sum(G[u][v].get('weight', 1) for u, v in zip(path[:-1], path[1:]))
                     
-                    # Count road types in the path
-                    path_edges = list(zip(path, path[1:]))
-                    road_types_in_path = {}
-                    for u, v in path_edges:
-                        if G.has_edge(u, v):
-                            road_type = G.edges[u, v].get('road_type', 'UNKNOWN')
-                            road_types_in_path[road_type] = road_types_in_path.get(road_type, 0) + 1
-                    
-                    all_paths.append({
+                    paths_to_sinks.append({
                         "sink": sink_zip,
-                        "distance_meters": distance,
-                        "distance_km": distance/1000,
-                        "path_nodes": len(path),
+                        "sink_node": sink_node,
+                        "distance": distance,
                         "path": path,
-                        "road_types": road_types_in_path
+                        "weight": 1/max(0.1, distance**2)  # Inverse squared distance
                     })
                 except nx.NetworkXNoPath:
                     continue
-        else:
-            # If not connected, only search sinks in the same component
-            centroid_component = node_to_component.get(centroid_node)
-            component_sinks = [sink for sink in sink_nodes if node_to_component.get(sink) == centroid_component]
             
-            for sink_node in component_sinks:
-                try:
-                    path = nx.shortest_path(G, source=centroid_node, target=sink_node, weight="weight")
-                    distance = nx.shortest_path_length(G, source=centroid_node, target=sink_node, weight="weight")
-                    sink_zip = G.nodes[sink_node].get("zip_code")
-                    
-                    # Count road types in the path
-                    path_edges = list(zip(path, path[1:]))
-                    road_types_in_path = {}
-                    for u, v in path_edges:
-                        if G.has_edge(u, v):
-                            road_type = G.edges[u, v].get('road_type', 'UNKNOWN')
-                            road_types_in_path[road_type] = road_types_in_path.get(road_type, 0) + 1
-                    
-                    all_paths.append({
-                        "sink": sink_zip,
-                        "distance_meters": distance,
-                        "distance_km": distance/1000,
-                        "path_nodes": len(path),
-                        "path": path,
-                        "road_types": road_types_in_path
-                    })
-                except nx.NetworkXNoPath:
-                    continue
-        
-        # Sort paths by distance
-        all_paths.sort(key=lambda x: x["distance_meters"])
-        
-        # Get top 3 paths (or fewer if not enough)
-        top_paths = all_paths[:min(3, len(all_paths))]
-        
-        if top_paths:
-            # Visualize only the shortest path
-            shortest_path_data = top_paths[0]
-            output_path = os.path.join(output_dir, f"path_{zip_code}_to_{shortest_path_data['sink']}.png")
-            visualize_path_with_road_types(G, shortest_path_data["path"], output_path, zip_code)
+            if not paths_to_sinks:
+                log_print(f"  WARNING: No paths found from {centroid_zip} to any sink!")
+                continue
             
-            # Add result to collection
-            result = {
-                "centroid": zip_code,
-                "paths": top_paths
-            }
-            results.append(result)
+            # Use the 5 closest sinks
+            closest_sinks = sorted(paths_to_sinks, key=lambda x: x["distance"])[:min(5, len(paths_to_sinks))]
             
-            print(f"Found {len(top_paths)} paths from centroid {zip_code}")
-            for i, path_data in enumerate(top_paths):
-                print(f"  Path {i+1}: to sink {path_data['sink']}, distance: {path_data['distance_km']:.2f} km")
-        else:
-            print(f"No path found from centroid {zip_code} to any sink!")
-            results.append({
-                "centroid": zip_code,
-                "paths": []
-            })
+            # Calculate total weight
+            total_weight = sum(x["weight"] for x in closest_sinks)
+            
+            # Distribute population based on weights
+            for path_data in closest_sinks:
+                sink_zip = path_data["sink"]
+                weight = path_data["weight"]
+                proportion = weight / total_weight if total_weight > 0 else 0
+                flow = pop * proportion
+                
+                # Record flow
+                if sink_zip not in result_data["centroid_flows"][centroid_zip]["sinks"]:
+                    result_data["centroid_flows"][centroid_zip]["sinks"][sink_zip] = 0
+                result_data["centroid_flows"][centroid_zip]["sinks"][sink_zip] += flow
+                
+                # Also record in sink data
+                result_data["sink_flows"][sink_zip]["total_inflow"] += flow
+                if centroid_zip not in result_data["sink_flows"][sink_zip]["centroids"]:
+                    result_data["sink_flows"][sink_zip]["centroids"][centroid_zip] = 0
+                result_data["sink_flows"][sink_zip]["centroids"][centroid_zip] += flow
     
-    # Create a summary file
-    summary_path = os.path.join(output_dir, "evacuation_summary.txt")
-    with open(summary_path, 'w') as f:
-        f.write("Evacuation Path Summary\n")
-        f.write("======================\n\n")
+    # Generate report
+    report_path = os.path.join(output_dir, "min_cost_flow_report.txt")
+    with open(report_path, 'w') as f:
+        f.write("MIN-COST FLOW EVACUATION ANALYSIS\n")
+        f.write("================================\n\n")
         
-        for result in results:
-            f.write(f"Centroid: {result['centroid']}\n")
+        f.write(f"Total Population: {total_population:,}\n")
+        f.write(f"Solver Status: {status}\n")
+        f.write(f"Solution: {'OPTIMAL' if status == mcf.OPTIMAL else 'NON-OPTIMAL'}\n\n")
+        
+        # Write sink summary
+        f.write("SINK DISTRIBUTION SUMMARY\n")
+        f.write("-----------------------\n")
+        
+        for sink_zip, data in sorted(result_data["sink_flows"].items(), key=lambda x: x[1]["total_inflow"], reverse=True):
+            inflow = data["total_inflow"]
+            percentage = (inflow / total_population) * 100 if total_population > 0 else 0
+            f.write(f"Sink {sink_zip}: {inflow:,.0f} people ({percentage:.1f}% of total)\n")
+        
+        f.write("\n\nDETAILED FLOW BY CENTROID\n")
+        f.write("========================\n\n")
+        
+        # Write detailed flow for each centroid
+        for centroid_zip, data in sorted(result_data["centroid_flows"].items(), key=lambda x: x[1]["population"], reverse=True):
+            population = data["population"]
+            sinks_data = data.get("sinks", {})
             
-            if result['paths']:
-                # First closest sink (most detailed)
-                path1 = result['paths'][0]
-                f.write(f"Closest Sink: {path1['sink']}\n")
-                f.write(f"Distance: {path1['distance_km']:.2f} km ({path1['distance_meters']:.2f} m)\n")
-                f.write(f"Path Nodes: {path1['path_nodes']}\n")
+            f.write(f"\nZIP Code: {centroid_zip} (Population: {population:,})\n")
+            f.write("-" * 40 + "\n")
+            
+            if sinks_data:
+                sink_flows = [(sink_zip, flow) for sink_zip, flow in sinks_data.items()]
+                sink_flows.sort(key=lambda x: x[1], reverse=True)
                 
-                if path1['road_types']:
-                    f.write("Road Types Used:\n")
-                    for road_type, count in path1['road_types'].items():
-                        f.write(f"  {road_type}: {count} segments\n")
-                
-                # Second closest sink (if available)
-                if len(result['paths']) > 1:
-                    path2 = result['paths'][1]
-                    f.write(f"\n2nd Closest Sink: {path2['sink']}\n")
-                    f.write(f"2nd Closest Distance: {path2['distance_km']:.2f} km ({path2['distance_meters']:.2f} m)\n")
-                
-                # Third closest sink (if available)
-                if len(result['paths']) > 2:
-                    path3 = result['paths'][2]
-                    f.write(f"\n3rd Closest Sink: {path3['sink']}\n")
-                    f.write(f"3rd Closest Distance: {path3['distance_km']:.2f} km ({path3['distance_meters']:.2f} m)\n")
+                for sink_zip, flow in sink_flows:
+                    portion = flow / population if population > 0 else 0
+                    if flow > 0:
+                        f.write(f"  → {sink_zip}: {flow:,.0f} people ({portion*100:.1f}%)\n")
             else:
-                f.write("No path found to any sink.\n")
-            
-            f.write("\n" + "-"*40 + "\n\n")
+                f.write("  No flow data available\n")
     
-    print(f"Summary saved to {summary_path}")
-    return results
+    # LEVEL 2: Generate detailed flow paths by mapping flows back to full network
+    if status == mcf.OPTIMAL:
+        log_print("Generating detailed evacuation routes...")
+        route_data = {}
+        
+        for source_node, _, source_zip in source_nodes:
+            routes_for_source = []
+            
+            for sink_node, sink_zip, _ in sink_nodes:
+                if (source_node, sink_node) in edge_index:
+                    idx = edge_index[(source_node, sink_node)]
+                    flow = mcf.flow(idx)
+                    
+                    if flow > 0:
+                        try:
+                            # Find the actual path through the full network
+                            path = nx.shortest_path(G, source_node, sink_node, weight="weight")
+                            path_distance = sum(G[u][v].get('weight', 1) for u, v in zip(path[:-1], path[1:]))
+                            
+                            # Extract road types along the path
+                            road_segments = []
+                            for u, v in zip(path[:-1], path[1:]):
+                                road_type = G[u][v].get('road_type', 'UNKNOWN')
+                                segment_length = G[u][v].get('weight', 0)
+                                road_segments.append({
+                                    "from_node": u,
+                                    "to_node": v,
+                                    "road_type": road_type,
+                                    "length": segment_length
+                                })
+                            
+                            # Store the detailed route data
+                            routes_for_source.append({
+                                "sink": sink_zip,
+                                "flow": flow,
+                                "distance": path_distance,
+                                "path_nodes": path,
+                                "road_segments": road_segments
+                            })
+                            
+                        except nx.NetworkXNoPath:
+                            log_print(f"Warning: Could not find actual path from {source_zip} to {sink_zip}")
+            
+            route_data[source_zip] = routes_for_source
+        
+        # Add route data to result
+        result_data["routes"] = route_data
+    
+    # Save result data
+    json_path = os.path.join(output_dir, "min_cost_flow_results.json")
+    with open(json_path, 'w') as f:
+        json.dump(result_data, f, indent=2)
+    
+    # Log completion
+    calculation_time = time.time() - start_time
+    log_print(f"Min-cost flow calculation completed in {calculation_time:.2f} seconds")
+    log_print(f"Results saved to {report_path} and {json_path}")
+    
+    return report_path, json_path
+
+def extract_max_evacuation_time(report_path):
+    """Extract the maximum evacuation time from a report file."""
+    max_time = 0
+    with open(report_path, 'r') as f:
+        for line in f:
+            if "Total evacuation time:" in line:
+                try:
+                    time_str = line.split("Total evacuation time:")[1].split("hours")[0].strip()
+                    time_val = float(time_str)
+                    max_time = max(max_time, time_val)
+                except:
+                    pass
+    return max_time
+
+def calculate_evacuation_flow_report(G, output_dir, congestion_scenario='moderate_congestion', phases=12):
+    """Calculate evacuation flow and time with congestion factors."""
+    log_print(f"Calculating evacuation flow and time for {congestion_scenario} scenario...")
+    
+    # Look up the congestion factor
+    congestion_scenarios = {
+        'free_flow': 0.7,           # Minimal evacuation traffic
+        'light_congestion': 0.5,    # Light evacuation traffic
+        'moderate_congestion': 0.3, # Typical evacuation conditions
+        'heavy_congestion': 0.2,    # Heavy evacuation traffic
+        'severe_congestion': 0.1    # Severe congestion with bottlenecks
+    }
+    congestion_factor = congestion_scenarios.get(congestion_scenario, 0.3)
+    
+    # First calculate the optimal evacuation flows
+    scenario_dir = os.path.join(output_dir, congestion_scenario)
+    os.makedirs(scenario_dir, exist_ok=True)
+    
+    report_path, json_path = calculate_min_cost_flow(G, scenario_dir)
+    
+    # Load the flow results
+    with open(json_path, 'r') as f:
+        flow_data = json.load(f)
+    
+    # Road properties for speed calculation
+    road_properties = {
+        'H': {'capacity': 24000, 'speed': 85},  # Highway
+        'P': {'capacity': 12000, 'speed': 75},  # Primary road
+        'M': {'capacity': 8000, 'speed': 65},   # Major road
+        'C': {'capacity': 6400, 'speed': 55},   # Collector road
+        'R': {'capacity': 4000, 'speed': 35},   # Ramp
+        'CONNECTOR': {'capacity': 16000, 'speed': 65},
+        'CENTROID_CONNECTOR': {'capacity': 20000, 'speed': 65},
+        'SINK_CONNECTOR': {'capacity': 24000, 'speed': 65},
+        'COMPONENT_CONNECTOR': {'capacity': 12000, 'speed': 65},
+        'SINK_TERMINAL_CONNECTOR': {'capacity': 24000, 'speed': 65},
+        'TERMINAL_CONNECTOR': {'capacity': 24000, 'speed': 65},
+        'UNKNOWN': {'capacity': 8000, 'speed': 30}
+    }
+    
+    # Calculate evacuation times for each route
+    if flow_data.get("optimal", False) and "routes" in flow_data:
+        log_print("Calculating evacuation times based on flow results...")
+        total_population = 0
+        max_evacuation_time = 0
+        total_flow_volume = 0  # Track total flow for network congestion calculation
+        
+        # Track road usage for bottleneck calculations
+        road_usage = {}  # Will store {road_segment_id: total_flow}
+        
+        # First pass - calculate basic travel times and track road segment usage
+        for source_zip, routes in flow_data["routes"].items():
+            population = flow_data["centroid_flows"][source_zip]["population"]
+            total_population += population
+            
+            for route in routes:
+                flow = route["flow"]
+                total_flow_volume += flow
+                
+                # Track which road segments are used by this flow
+                for segment in route["road_segments"]:
+                    segment_id = f"{segment['from_node']}_{segment['to_node']}"
+                    if segment_id not in road_usage:
+                        road_usage[segment_id] = 0
+                    road_usage[segment_id] += flow
+        
+        # Calculate average flow per segment for bottleneck scaling
+        avg_flow_per_segment = total_flow_volume / max(1, len(road_usage))
+        
+        # Second pass - calculate actual evacuation times with bottlenecks
+        for source_zip, routes in flow_data["routes"].items():
+            zip_max_time = 0  # Track maximum evacuation time for this zip code
+            
+            for route in routes:
+                sink_zip = route["sink"]
+                flow = route["flow"]
+                distance = route["distance"]  # in meters
+                
+                # Calculate travel time based on road segments, speeds, and congestion
+                route_time = 0
+                for segment in route["road_segments"]:
+                    road_type = segment["road_type"]
+                    segment_length = segment["length"]  # in meters
+                    segment_id = f"{segment['from_node']}_{segment['to_node']}"
+                    
+                    # Get base speed for this road type (mph)
+                    if len(road_type) == 1:
+                        base_speed = road_properties.get(road_type, {}).get('speed', 30)
+                    else:
+                        base_speed = road_properties.get(road_type, {}).get('speed', 30)
+                    
+                    # Apply congestion factor to base speed
+                    speed_mph = base_speed * congestion_factor
+                    
+                    # Additional congestion based on segment usage
+                    segment_flow = road_usage.get(segment_id, 0)
+                    segment_usage_ratio = segment_flow / avg_flow_per_segment if avg_flow_per_segment > 0 else 1
+                    
+                    # More traffic on a segment means lower speeds
+                    local_congestion_factor = max(0.3, 1.0 - (0.5 * min(1.0, segment_usage_ratio)))
+                    speed_mph *= local_congestion_factor
+                    
+                    # Convert mph to m/s (1 mph = 0.44704 m/s)
+                    speed_ms = speed_mph * 0.44704
+                    
+                    # Calculate time for this segment in hours
+                    segment_time_hours = segment_length / (speed_ms * 3600)
+                    route_time += segment_time_hours
+                
+                # Calculate bottleneck effect (delay increases with flow volume)
+                # More people = more vehicles = more congestion at bottlenecks
+                vehicles_per_hour = 2000  # Assume 2000 vehicles/hour can exit an area
+                capacity_ratio = flow / (vehicles_per_hour * 1.5)  # 1.5 people per vehicle average
+                bottleneck_hours = max(0, capacity_ratio - 1)  # Only add when over capacity
+                
+                # Apply phased evacuation model
+                # People don't all leave at once - waves of departures
+                wave_size = 8000  # People per evacuation wave
+                num_waves = max(1, int(flow / wave_size))
+                wave_spacing_hours = 1.0  # Time between waves
+                phased_evacuation_hours = (num_waves - 1) * wave_spacing_hours
+                
+                # Combine all time components for total evacuation time
+                total_route_time = route_time + bottleneck_hours + phased_evacuation_hours
+                
+                # Apply regional effect - evacuations slow down as more of the system is used
+                regional_congestion_multiplier = 1.0 + (0.2 * (total_population / 500000))
+                scaled_route_time = total_route_time * regional_congestion_multiplier
+                
+                log_print(f"  {source_zip} → {sink_zip}: {flow:,} people, {distance/1000:.1f} km")
+                log_print(f"    Base travel time: {route_time:.2f} hrs, Bottleneck: {bottleneck_hours:.2f} hrs")
+                log_print(f"    Phased departure: {phased_evacuation_hours:.2f} hrs ({num_waves} waves)")
+                log_print(f"    Total evacuation: {scaled_route_time:.2f} hrs")
+                
+                # Store the evacuation time in the route data
+                route["travel_time_hours"] = route_time
+                route["bottleneck_hours"] = bottleneck_hours
+                route["phased_evacuation_hours"] = phased_evacuation_hours
+                route["total_evacuation_time_hours"] = scaled_route_time
+                
+                # Update maximum times
+                zip_max_time = max(zip_max_time, scaled_route_time)
+                max_evacuation_time = max(max_evacuation_time, scaled_route_time)
+            
+            # Store the maximum time for this zip code
+            flow_data["centroid_flows"][source_zip]["max_evacuation_time"] = zip_max_time
+        
+        # Apply scenario-specific scaling factor
+        scenario_multiplier = {
+            'free_flow': 1.0,
+            'light_congestion': 1.2,
+            'moderate_congestion': 1.5,
+            'heavy_congestion': 2.0,
+            'severe_congestion': 3.0
+        }.get(congestion_scenario, 1.5)
+        
+        # Calculate final evacuation time
+        final_max_evacuation_time = max_evacuation_time * scenario_multiplier
+        
+        log_print(f"Maximum base evacuation time: {max_evacuation_time:.2f} hours")
+        log_print(f"Scenario multiplier: {scenario_multiplier:.1f}x")
+        log_print(f"TOTAL EVACUATION TIME: {final_max_evacuation_time:.2f} hours")
+        
+        # Update the JSON data with evacuation time information
+        flow_data["evacuation_parameters"] = {
+            "congestion_scenario": congestion_scenario,
+            "congestion_factor": congestion_factor,
+            "evacuation_phases": phases,
+            "max_evacuation_time_hours": final_max_evacuation_time,
+            "base_evacuation_time_hours": max_evacuation_time,
+            "scenario_multiplier": scenario_multiplier
+        }
+        
+        # Save updated JSON
+        with open(json_path, 'w') as f:
+            json.dump(flow_data, f, indent=2)
+            
+        # Update the report with evacuation time
+        time_report_path = os.path.join(scenario_dir, "evacuation_time_report.txt")
+        with open(time_report_path, 'w') as f:
+            f.write(f"EVACUATION TIME REPORT: {congestion_scenario.upper()}\n")
+            f.write("==========================================\n\n")
+            f.write(f"Congestion Factor: {congestion_factor}\n")
+            f.write(f"Total Population: {total_population:,}\n")
+            f.write(f"Evacuation Phases: {phases}\n")
+            f.write(f"Total evacuation time: {final_max_evacuation_time:.2f} hours\n\n")
+            
+            f.write("EVACUATION TIME BREAKDOWN\n")
+            f.write("------------------------\n")
+            f.write(f"Base maximum travel time: {max_evacuation_time:.2f} hours\n")
+            f.write(f"Scenario multiplier: {scenario_multiplier:.1f}x\n\n")
+            
+            f.write("EVACUATION TIMES BY ZIP CODE\n")
+            f.write("---------------------------\n\n")
+            
+            # Show evacuation time for each zip code
+            for source_zip, data in sorted(flow_data["centroid_flows"].items()):
+                population = data["population"]
+                evac_time = data.get("max_evacuation_time", 0) * scenario_multiplier
+                
+                f.write(f"{source_zip} (Pop: {population:,}): {evac_time:.2f} hours\n")
+        
+        # Return the evacuation time report path
+        return time_report_path
+    else:
+        log_print("Could not calculate evacuation times: No optimal route data available")
+        return report_path
 
 def main():
+    # Start timing for overall execution
+    total_start_time = time.time()
+    
     # Define file paths
     data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
     routes_path = os.path.join(data_dir, "Evacuation_Routes_Tampa.geojson")
     centroids_path = os.path.join(data_dir, "zip_code_centroids.json")
     sink_nodes_path = os.path.join(data_dir, "sink_nodes.json")
-    components_path = os.path.join(data_dir, "graph_components.png")
+    terminal_nodes_path = os.path.join(data_dir, "terminal_nodes.json")
     results_dir = os.path.join(data_dir, "results")
+    graph_pickle_path = os.path.join(data_dir, "evacuation_graph.pickle")
+    population_data_path = os.path.join(data_dir, "Tampa-zip-codes-data.json")
+    log_file_path = os.path.join(results_dir, "evacuation_log.txt")
     
-    # Load data
-    routes_gdf, centroids_gdf, sinks_gdf = load_data(routes_path, centroids_path, sink_nodes_path)
+    # Set up logging
+    setup_logging(log_file_path)
+    log_print(f"Starting evacuation analysis at {time.strftime('%Y-%m-%d %H:%M:%S')}")
     
-    # Create graph with improved connectivity
-    # Adjust connection_threshold as needed - higher values create more connections
-    G = create_connected_graph(routes_gdf, centroids_gdf, sinks_gdf, connection_threshold=150)
+    # Load or create graph
+    if os.path.exists(graph_pickle_path):
+        G = load_graph_from_pickle(graph_pickle_path)
+    else:
+        routes_gdf, centroids_gdf, sinks_gdf = load_data(routes_path, centroids_path, sink_nodes_path)
+        G = create_connected_graph(routes_gdf, centroids_gdf, sinks_gdf, connection_threshold=150)
+        G = connect_sinks_to_terminals(G, terminal_nodes_path, sink_nodes_path)
+        save_graph_to_pickle(G, graph_pickle_path)
     
-    # Visualize the components to diagnose connectivity issues
-    visualize_components(G, components_path)
+    # Assign capacities and population data to the graph
+    G = assign_road_capacities_and_population(G, population_data_path, sink_nodes_path)
     
-    # Process all centroids and find paths
-    process_all_centroids(G, centroids_gdf, results_dir)
+    # Run analysis with multiple congestion scenarios
+    congestion_scenarios = {
+        'free_flow': 0.7,           # Minimal evacuation traffic
+        'light_congestion': 0.5,    # Light evacuation traffic
+        'moderate_congestion': 0.3, # Typical evacuation conditions
+        'heavy_congestion': 0.2,    # Heavy evacuation traffic
+        'severe_congestion': 0.1    # Severe congestion with bottlenecks
+    }
+    
+    log_print("\n===== COMPARING CONGESTION SCENARIOS =====")
+    log_print("Scenario            | Congestion Factor | Evacuation Time (hours)")
+    log_print("-------------------|-------------------|---------------------")
+    
+    scenario_results = {}
+    for scenario, factor in congestion_scenarios.items():
+        log_print(f"Running scenario: {scenario} (factor: {factor})...")
+        report_path = calculate_evacuation_flow_report(G, results_dir, 
+                                                      congestion_scenario=scenario,
+                                                      phases=12)
+        
+        # Extract evacuation time from the report (this would need to be implemented)
+        max_evacuation_time = extract_max_evacuation_time(report_path)
+        scenario_results[scenario] = max_evacuation_time
+        
+        log_print(f"{scenario.ljust(20)} | {factor:.1f}                | {max_evacuation_time:.2f}")
+    
+    # Generate comparative report
+    comparative_report_path = os.path.join(results_dir, "congestion_comparison.txt")
+    with open(comparative_report_path, 'w') as f:
+        f.write("TAMPA BAY EVACUATION TIME COMPARISON BY CONGESTION SCENARIO\n")
+        f.write("=========================================================\n\n")
+        
+        for scenario, evac_time in sorted(scenario_results.items(), key=lambda x: x[1]):
+            f.write(f"{scenario.ljust(20)}: {evac_time:.2f} hours\n")
+    
+    total_time = time.time() - total_start_time
+    log_print(f"\nAll scenarios completed in {total_time:.2f} seconds")
+    log_print(f"Comparative report saved to: {comparative_report_path}")
 
 if __name__ == "__main__":
     main()
