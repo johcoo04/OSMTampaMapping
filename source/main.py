@@ -513,7 +513,7 @@ def assign_road_capacities_and_population(G, population_data_path, sink_nodes_pa
     return G
 
 def calculate_min_cost_flow(G, output_dir):
-    """Calculate optimal evacuation flows using a simplified bi-level approach."""
+    """Calculate optimal evacuation flows using a simplified bi-level approach with optimized path finding."""
     log_print("Calculating optimal evacuation paths using bi-level min-cost flow approach...")
     start_time = time.time()
     
@@ -560,61 +560,97 @@ def calculate_min_cost_flow(G, output_dir):
     for sink_node, sink_zip, capacity in sink_nodes:
         F.add_edge(sink_node, super_sink, capacity=capacity, weight=1)
     
-    # Pre-calculate shortest paths between sources and sinks
-    log_print("Pre-calculating shortest paths between all sources and sinks...")
-    path_failures = 0
+    # OPTIMIZATION: Pre-calculate all paths using multi-source Dijkstra
+    log_print("Pre-calculating shortest paths from sinks using multi-source Dijkstra...")
     
-    # Connect sources directly to sinks using shortest paths through the full network
+    # Create data structures to store paths and distances
+    all_paths = {}  # {sink_node: {source_node: path}}
+    all_distances = {}  # {sink_node: {source_node: distance}}
+    
+    # Extract source and sink node IDs
+    source_node_ids = [node_id for node_id, _, _ in source_nodes]
+    
+    # Pre-calculate for each sink using single_source_dijkstra
+    path_failures = 0
+    for sink_idx, (sink_node, sink_zip, _) in enumerate(sink_nodes):
+        log_print(f"Calculating paths from sink {sink_idx+1}/{len(sink_nodes)}: {sink_zip}")
+        
+        try:
+            # Calculate shortest paths from this sink to all nodes
+            # Note: We use the sink as the source for Dijkstra, but paths will be reversed later
+            length, paths = nx.single_source_dijkstra(G, sink_node, weight="weight")
+            
+            all_paths[sink_node] = {}
+            all_distances[sink_node] = {}
+            
+            # Store paths to source nodes only (to save memory)
+            for source_node in source_node_ids:
+                if (source_node in paths):
+                    # Reverse the path (it's from sink to source, we need source to sink)
+                    all_paths[sink_node][source_node] = list(reversed(paths[source_node]))
+                    all_distances[sink_node][source_node] = length[source_node]
+                else:
+                    path_failures += 1
+        except Exception as e:
+            log_print(f"Error calculating paths from sink {sink_zip}: {str(e)}")
+            path_failures += len(source_node_ids)
+    
+    if path_failures > 0:
+        log_print(f"Warning: Could not calculate {path_failures} paths. Will use high-cost alternatives.")
+    
+    # Now connect sources to sinks using the pre-calculated paths
+    log_print("Creating bipartite graph edges using pre-calculated paths...")
     for i, (source_node, pop, source_zip) in enumerate(source_nodes):
         if i % 10 == 0:
             log_print(f"Processing source {i+1}/{len(source_nodes)}: {source_zip}")
         
+        source_paths_found = 0
         for sink_node, sink_zip, sink_capacity in sink_nodes:
-            try:
-                # Find shortest path in the full network
-                path = nx.shortest_path(G, source_node, sink_node, weight="weight")
+            # Check if we have a path from this source to this sink
+            if sink_node in all_paths and source_node in all_paths[sink_node]:
+                path = all_paths[sink_node][source_node]
+                distance = all_distances[sink_node][source_node]
                 
-                # Calculate path distance and aggregate capacity
-                distance = 0
+                # Calculate path properties
                 min_capacity = float('inf')
                 road_types = set()
                 
                 for u, v in zip(path[:-1], path[1:]):
-                    segment_weight = G[u][v].get('weight', 1000)
                     segment_capacity = G[u][v].get('capacity', 10000)
                     road_type = G[u][v].get('road_type', 'UNKNOWN')
                     
-                    distance += segment_weight
                     min_capacity = min(min_capacity, segment_capacity)
                     road_types.add(road_type)
                 
-                # Add a direct edge with appropriate costs and capacity
-                # Set capacity as minimum of source population, sink capacity, and route capacity
+                # Add direct edge to bipartite graph
                 edge_capacity = min(pop, sink_capacity, min_capacity)
-                
-                # Convert distance to integer cost (OR-Tools requires integer costs)
-                # Normalize to reasonable range to avoid numerical issues
                 cost = max(1, min(999999, int(distance)))
                 
                 F.add_edge(source_node, sink_node, 
                           capacity=edge_capacity,
                           weight=cost, 
                           distance=distance,
-                          road_types=list(road_types))
-                          
-            except nx.NetworkXNoPath:
-                path_failures += 1
-                # Add a high-cost edge to ensure problem is feasible
+                          road_types=list(road_types),
+                          path=path)  # Store path for later use
+                
+                source_paths_found += 1
+            else:
+                # Add high-cost edge to ensure problem is feasible
                 F.add_edge(source_node, sink_node, 
                           capacity=pop,
                           weight=999999,  # Very high cost = least desirable
                           distance=999999,
                           road_types=["NONE"])
+        
+        if source_paths_found == 0:
+            log_print(f"Warning: No paths found for source {source_zip}. Using high-cost alternatives.")
     
-    if path_failures > 0:
-        log_print(f"Warning: Could not find paths for {path_failures} source-sink pairs. Added high-cost alternatives.")
+    # Release memory from path calculation
+    all_paths = None
+    all_distances = None
     
-    # Step 3: Create the min-cost flow solver
+    # Rest of the function remains the same...
+    # ... (solver setup, solving, and results processing)
     log_print("Setting up min-cost flow solver...")
     mcf = min_cost_flow.SimpleMinCostFlow()
     
@@ -1015,7 +1051,7 @@ def calculate_evacuation_flow_report(G, output_dir, congestion_scenario='moderat
                 
                 # Apply phased evacuation model
                 # People don't all leave at once - waves of departures
-                wave_size = 8000  # People per evacuation wave
+                wave_size = 2000  # People per evacuation wave
                 num_waves = max(1, int(flow / wave_size))
                 wave_spacing_hours = 1.0  # Time between waves
                 phased_evacuation_hours = (num_waves - 1) * wave_spacing_hours
