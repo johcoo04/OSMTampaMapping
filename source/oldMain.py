@@ -1163,6 +1163,7 @@ def visualize_shortest_paths(G, centroids_gdf, results, output_dir):
     summary_path = os.path.join(vis_dir, "all_primary_paths.png")
     plt.savefig(summary_path, dpi=300, bbox_inches='tight')
     plt.close()
+    print('works')
     
     log_print(f"Generated summary visualization: {summary_path}")
     return vis_dir
