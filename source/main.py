@@ -11,6 +11,9 @@ import pickle
 import logging
 import sys
 from ortools.graph.python import min_cost_flow
+import matplotlib.cm as cm
+from matplotlib.lines import Line2D
+from matplotlib.colors import Normalize
 
 # Setup logging configuration
 def setup_logging(log_file_path):
@@ -1142,6 +1145,183 @@ def calculate_evacuation_flow_report(G, output_dir, congestion_scenario='moderat
         log_print("Could not calculate evacuation times: No optimal route data available")
         return report_path
 
+def visualize_centroid_flows(G, centroid_zip, json_results_path, output_dir):
+    """
+    Visualize evacuation routes for a specific centroid (zip code).
+    
+    Args:
+        G: NetworkX graph with the evacuation network
+        centroid_zip: Zip code of the centroid to visualize
+        json_results_path: Path to the min_cost_flow_results.json file
+        output_dir: Directory to save the visualization
+    """
+    log_print(f"Visualizing evacuation routes for centroid {centroid_zip}...")
+    
+    # Load flow results
+    with open(json_results_path, 'r') as f:
+        flow_data = json.load(f)
+    
+    # Check if this zip code exists in the results
+    if centroid_zip not in flow_data.get("centroid_flows", {}):
+        log_print(f"Error: Zip code {centroid_zip} not found in flow data")
+        return False
+    
+    # Check if we have route data
+    if "routes" not in flow_data or centroid_zip not in flow_data["routes"]:
+        log_print(f"Error: No route data found for zip code {centroid_zip}")
+        return False
+    
+    # Get population and routes for this centroid
+    population = flow_data["centroid_flows"][centroid_zip]["population"]
+    routes = flow_data["routes"][centroid_zip]
+    
+    if not routes:
+        log_print(f"No routes found for centroid {centroid_zip}")
+        return False
+    
+    # Create figure with appropriate size
+    plt.figure(figsize=(12, 10))
+    
+    # First, draw all road segments as light gray lines for context
+    drawn_edges = set()
+    for u, v, data in G.edges(data=True):
+        if G.nodes[u].get("node_type") == "route" and G.nodes[v].get("node_type") == "route":
+            # Skip if already drawn
+            if (u, v) in drawn_edges or (v, u) in drawn_edges:
+                continue
+                
+            # Get positions
+            if "pos" in G.nodes[u] and "pos" in G.nodes[v]:
+                x1, y1 = G.nodes[u]["pos"]
+                x2, y2 = G.nodes[v]["pos"]
+                plt.plot([x1, x2], [y1, y2], color='lightgray', linewidth=0.5, alpha=0.5, zorder=1)
+                drawn_edges.add((u, v))
+    
+    # Find the centroid node
+    centroid_node = None
+    for node, data in G.nodes(data=True):
+        if data.get("node_type") == "centroid" and data.get("zip_code") == centroid_zip:
+            centroid_node = node
+            break
+    
+    # Set up colormap for different destinations
+    unique_sinks = list(set(route["sink"] for route in routes))
+    colors = cm.tab10(np.linspace(0, 1, len(unique_sinks)))
+    sink_color_map = {sink: colors[i] for i, sink in enumerate(unique_sinks)}
+    
+    # Find maximum flow for scaling line widths
+    max_flow = max(route["flow"] for route in routes)
+    
+    # Create legend elements
+    legend_elements = []
+    
+    # Draw each route with color based on sink and width based on flow
+    for route in routes:
+        sink_zip = route["sink"]
+        flow = route["flow"]
+        # Normalize flow to get line width between 1 and 8
+        width = 1 + 7 * (flow / max_flow)
+        
+        # Get the color for this sink
+        color = sink_color_map[sink_zip]
+        
+        # Get the path nodes
+        path = route["path_nodes"]
+        
+        # Draw the path
+        for i in range(len(path) - 1):
+            u, v = path[i], path[i+1]
+            if "pos" in G.nodes[u] and "pos" in G.nodes[v]:
+                x1, y1 = G.nodes[u]["pos"]
+                x2, y2 = G.nodes[v]["pos"]
+                plt.plot([x1, x2], [y1, y2], color=color, linewidth=width, alpha=0.8, zorder=2)
+        
+        # Add to legend
+        flow_thousands = flow / 1000
+        legend_elements.append(Line2D([0], [0], color=color, lw=width, 
+                                     label=f"To {sink_zip}: {flow_thousands:.1f}k people"))
+    
+    # Highlight the centroid
+    if centroid_node and "pos" in G.nodes[centroid_node]:
+        x, y = G.nodes[centroid_node]["pos"]
+        plt.scatter(x, y, color='red', s=100, edgecolor='black', zorder=3)
+        plt.text(x, y, f"ZIP {centroid_zip}", fontsize=12, ha='center', va='bottom', 
+                 bbox=dict(facecolor='white', alpha=0.7, boxstyle='round'), zorder=4)
+    
+    # Highlight sink nodes
+    sink_nodes = []
+    for route in routes:
+        sink_zip = route["sink"]
+        for node, data in G.nodes(data=True):
+            if data.get("node_type") == "sink" and data.get("zip_code") == sink_zip:
+                sink_nodes.append((node, sink_zip))
+                break
+    
+    for node, sink_zip in sink_nodes:
+        if "pos" in G.nodes[node]:
+            x, y = G.nodes[node]["pos"]
+            color = sink_color_map[sink_zip]
+            plt.scatter(x, y, color=color, s=100, edgecolor='black', zorder=3)
+            plt.text(x, y, f"Sink {sink_zip}", fontsize=10, ha='center', va='bottom',
+                    bbox=dict(facecolor='white', alpha=0.7, boxstyle='round'), zorder=4)
+    
+    # Add title and legend
+    plt.title(f"Evacuation Routes from ZIP {centroid_zip} (Population: {population:,})", fontsize=14)
+    plt.legend(handles=legend_elements, title="Destinations", loc='best')
+    
+    # No axis needed for this visualization
+    plt.axis('off')
+    
+    # Make axes proportional
+    plt.axis('equal')
+    
+    # Save the figure
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, f"evacuation_routes_{centroid_zip}.png")
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300)
+    plt.close()
+    
+    log_print(f"Visualization saved to {output_path}")
+    return True
+
+def visualize_all_centroid_flows(G, json_results_path, output_dir):
+    """
+    Visualize evacuation routes for all centroids.
+    
+    Args:
+        G: NetworkX graph with the evacuation network
+        json_results_path: Path to the min_cost_flow_results.json file
+        output_dir: Directory to save the visualizations
+    """
+    log_print("Visualizing evacuation routes for all centroids...")
+    
+    # Load flow results
+    with open(json_results_path, 'r') as f:
+        flow_data = json.load(f)
+    
+    # Check if we have centroid flow data
+    if "centroid_flows" not in flow_data:
+        log_print("Error: No centroid flow data found in results")
+        return False
+    
+    # Create output directory
+    viz_output_dir = os.path.join(output_dir, "route_visualizations")
+    os.makedirs(viz_output_dir, exist_ok=True)
+    
+    # Visualize routes for each centroid
+    successful = 0
+    failed = 0
+    for centroid_zip in flow_data["centroid_flows"].keys():
+        result = visualize_centroid_flows(G, centroid_zip, json_results_path, viz_output_dir)
+        if result:
+            successful += 1
+        else:
+            failed += 1
+    
+    log_print(f"Completed visualizations: {successful} successful, {failed} failed")
+    return successful > 0
+
 def main():
     # Start timing for overall execution
     total_start_time = time.time()
@@ -1211,6 +1391,15 @@ def main():
     total_time = time.time() - total_start_time
     log_print(f"\nAll scenarios completed in {total_time:.2f} seconds")
     log_print(f"Comparative report saved to: {comparative_report_path}")
+    
+    # After calculating evacuation flows, visualize routes for each centroid
+    for scenario in congestion_scenarios.keys():
+        scenario_dir = os.path.join(results_dir, scenario)
+        json_results_path = os.path.join(scenario_dir, "min_cost_flow_results.json")
+        
+        if os.path.exists(json_results_path):
+            log_print(f"\nGenerating route visualizations for {scenario} scenario...")
+            visualize_all_centroid_flows(G, json_results_path, scenario_dir)
 
 if __name__ == "__main__":
     main()
